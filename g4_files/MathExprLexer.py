@@ -34,8 +34,8 @@ def serializedATN():
         buf.write("\2\2\2\'\\\3\2\2\2)\62\7\62\2\2*.\t\2\2\2+-\t\3\2\2,+")
         buf.write("\3\2\2\2-\60\3\2\2\2.,\3\2\2\2./\3\2\2\2/\62\3\2\2\2\60")
         buf.write(".\3\2\2\2\61)\3\2\2\2\61*\3\2\2\2\62\4\3\2\2\2\63\64\7")
-        buf.write(",\2\2\64\6\3\2\2\2\65\66\7-\2\2\66\b\3\2\2\2\678\7/\2")
-        buf.write("\28\n\3\2\2\29:\7\61\2\2:\f\3\2\2\2;<\7>\2\2<\16\3\2\2")
+        buf.write(",\2\2\64\6\3\2\2\2\65\66\7/\2\2\66\b\3\2\2\2\678\7\61")
+        buf.write("\2\28\n\3\2\2\29:\7-\2\2:\f\3\2\2\2;<\7>\2\2<\16\3\2\2")
         buf.write("\2=>\7@\2\2>\20\3\2\2\2?@\7?\2\2@A\7?\2\2A\22\3\2\2\2")
         buf.write("BC\7*\2\2C\24\3\2\2\2DE\7+\2\2E\26\3\2\2\2FG\7(\2\2GH")
         buf.write("\7(\2\2H\30\3\2\2\2IJ\7~\2\2JK\7~\2\2K\32\3\2\2\2LM\7")
@@ -55,9 +55,9 @@ class MathExprLexer(Lexer):
 
     INT = 1
     MUL = 2
-    PLUS = 3
-    MIN = 4
-    DIS = 5
+    MIN = 3
+    DIS = 4
+    PLUS = 5
     LT = 6
     GT = 7
     EQ = 8
@@ -78,15 +78,15 @@ class MathExprLexer(Lexer):
     modeNames = [ "DEFAULT_MODE" ]
 
     literalNames = [ "<INVALID>",
-            "'*'", "'+'", "'-'", "'/'", "'<'", "'>'", "'=='", "'('", "')'", 
+            "'*'", "'-'", "'/'", "'+'", "'<'", "'>'", "'=='", "'('", "')'", 
             "'&&'", "'||'", "'!'", "'<='", "'>='", "'!='", "'%'", "';'" ]
 
     symbolicNames = [ "<INVALID>",
-            "INT", "MUL", "PLUS", "MIN", "DIS", "LT", "GT", "EQ", "LBR", 
+            "INT", "MUL", "MIN", "DIS", "PLUS", "LT", "GT", "EQ", "LBR", 
             "RBR", "AND", "OR", "NOT", "LTE", "GTE", "NE", "MOD", "SEMICOL", 
             "WS" ]
 
-    ruleNames = [ "INT", "MUL", "PLUS", "MIN", "DIS", "LT", "GT", "EQ", 
+    ruleNames = [ "INT", "MUL", "MIN", "DIS", "PLUS", "LT", "GT", "EQ", 
                   "LBR", "RBR", "AND", "OR", "NOT", "LTE", "GTE", "NE", 
                   "MOD", "SEMICOL", "WS" ]
 

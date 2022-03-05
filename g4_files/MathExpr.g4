@@ -1,23 +1,27 @@
 grammar MathExpr;
 startRule
-    :expr SEMICOL
+    :expr* EOF
     ;
 expr
-    : expr binOp expr
-    | unOp expr
+    : expr (MUL|DIS|MOD) expr
+    | expr (PLUS | MIN) expr
+    | (PLUS|MIN|NOT) expr
+    | expr (AND|OR) expr
+    | expr (LT|GT|EQ|LTE|GTE|NE) expr
     | LBR expr RBR
+    | expr SEMICOL
     | INT
     ;
-binOp: PLUS | MIN | DIS | MUL|MOD;
+binOp: PLUS | MIN  |DIS| MUL |MOD;
 unOp: PLUS|MIN;
-logOp: AND|NOT|OR;
+logOp: AND|OR;
 compOp: LT|GT|EQ|LTE|GTE|NE;
 
 INT:'0' | [1-9] [0-9]*;
 MUL:'*';
-PLUS:'+';
 MIN:'-';
 DIS:'/';
+PLUS:'+';
 LT:'<';
 GT:'>';
 EQ:'==';
