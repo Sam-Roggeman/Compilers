@@ -12,12 +12,10 @@ def main(argv):
     stream = CommonTokenStream(lexer)
     parser = MathExprParser(stream)
     tree = parser.startRule()
-    a = AST(tree)
+    a = AST(tree=tree,name="a")
     dot = a.toDot()
-    dot.render(filename="out", format="png")
     a.fold()
     dot = a.toDot()
-    dot.render(filename="out1", format="png")
 
 
 
