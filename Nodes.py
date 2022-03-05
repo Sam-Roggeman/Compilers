@@ -1,17 +1,16 @@
-class Node:
-    _data = None
-    _type = None
+# class Node:
+#     _data = None
+#     _type = None
+#
+#     def __init__(self, _data, _type):
+#         self._data = _data.getText()
+#         self._type = _type
+#
+#     def tostring(self):
+#         return str(self._type) + ": \"" + self._data + "\""
 
-    def __init__(self, _data, _type):
-        self._data = _data.getText()
-        self._type = _type
 
-    def tostring(self):
-        return str(self._type) + ": \"" + self._data + "\""
-
-
-# todo general node
-class GenNode:
+class AbsNode:
     def __init__(self):
         pass
 
@@ -20,6 +19,7 @@ class GenNode:
 
     def getChildren(self):
         return []
+
     def toDot(self, dot):
         dot.node(str(id(self)), self.toString())
         for child in self.getChildren():
@@ -27,7 +27,8 @@ class GenNode:
             dot.edge(str(id(self)), str(id(child)))
         return dot
 
-class ProgramNode(GenNode):
+
+class ProgramNode(AbsNode):
     children = []
 
     def __init__(self):
@@ -43,10 +44,9 @@ class ProgramNode(GenNode):
         for index in range(len(self.children)):
             self.children[index] = TermIntNode(self.children[index].fold())
 
-        # todo unOp PLUS MIN !
 
 
-class UnOpNode(GenNode):
+class UnOpNode(AbsNode):
     rhs = None
 
     def getChildren(self):
@@ -96,9 +96,8 @@ class UnNotNode(UnOpNode):
         return self.rhs != 0
 
 
-# TODO binOp PLUS MIN MUL DIS LT EQ GT GTE LTE NEQ MOD && ||
 
-class BinOpNode(GenNode):
+class BinOpNode(AbsNode):
     lhs = None
     rhs = None
 
@@ -271,7 +270,7 @@ class BinOrNode(BinOpNode):
         return self.lhs or self.rhs
 
 
-class TermNode(GenNode):
+class TermNode(AbsNode):
     def __init__(self):
         super().__init__()
 
@@ -288,9 +287,3 @@ class TermIntNode(TermNode):
 
     def fold(self):
         return self.value
-
-    # def __add__(self, other):
-    #     self.value += other.value
-    #
-    # def __neg__(self):
-    #     self.value = -self.value
