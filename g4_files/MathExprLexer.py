@@ -1,4 +1,4 @@
-# Generated from ./g4_files/MathExpr.g4 by ANTLR 4.9.3
+# Generated from ./g4_files/CGrammar.g4 by ANTLR 4.9.3
 from antlr4 import *
 from io import StringIO
 import sys
@@ -90,7 +90,7 @@ class MathExprLexer(Lexer):
                   "LBR", "RBR", "AND", "OR", "NOT", "LTE", "GTE", "NE", 
                   "MOD", "SEMICOL", "WS" ]
 
-    grammarFileName = "MathExpr.g4"
+    grammarFileName = "CGrammar.g4"
 
     def __init__(self, input=None, output:TextIO = sys.stdout):
         super().__init__(input, output)

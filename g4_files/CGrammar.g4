@@ -1,4 +1,4 @@
-grammar MathExpr;
+grammar CGrammar;
 startRule
     :expr* EOF
     ;

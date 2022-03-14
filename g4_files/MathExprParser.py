@@ -1,4 +1,4 @@
-# Generated from ./g4_files/MathExpr.g4 by ANTLR 4.9.3
+# Generated from ./g4_files/CGrammar.g4 by ANTLR 4.9.3
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -38,7 +38,7 @@ def serializedATN():
 
 class MathExprParser ( Parser ):
 
-    grammarFileName = "MathExpr.g4"
+    grammarFileName = "CGrammar.g4"
 
     atn = ATNDeserializer().deserialize(serializedATN())
 

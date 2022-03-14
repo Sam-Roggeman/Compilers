@@ -1,4 +1,4 @@
-# Generated from ./g4_files/MathExpr.g4 by ANTLR 4.9.3
+# Generated from ./g4_files/CGrammar.g4 by ANTLR 4.9.3
 # encoding: utf-8
 from __future__ import print_function
 from antlr4 import *
@@ -44,7 +44,7 @@ class MathExpr(Lexer):
 
     ruleNames = [ u"INT", u"WS" ]
 
-    grammarFileName = u"MathExpr.g4"
+    grammarFileName = u"CGrammar.g4"
 
     def __init__(self, input=None, output=sys.stdout):
         super(MathExpr, self).__init__(input, output=output)

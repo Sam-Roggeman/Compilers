@@ -1,16 +1,16 @@
 import sys
 from antlr4 import *
-from g4_files.MathExprLexer import MathExprLexer
-from g4_files.MathExprParser import MathExprParser
+from g4_files.CGrammarLexer import CGrammarLexer
+from g4_files.CGrammarParser import CGrammarParser
 from AST import AST
 import graphviz
 
 
 def main(argv):
     input_stream = FileStream(argv[1])
-    lexer = MathExprLexer(input_stream)
+    lexer = CGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
-    parser = MathExprParser(stream)
+    parser = CGrammarParser(stream)
     tree = parser.startRule()
     a = AST(tree=tree,name="a")
     dot = a.toDot()
