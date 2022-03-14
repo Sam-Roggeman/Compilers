@@ -22,6 +22,9 @@ class AbsNode:
     def getChildren(self):
         return []
 
+    def fold(self):
+        pass
+
     def toDot(self, dot):
         dot.node(str(id(self)), self.toString())
         for child in self.getChildren():
@@ -33,7 +36,7 @@ class AbsNode:
 class ProgramNode(AbsNode):
     children = []
 
-    def __init__(self,parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
     def addchild(self, child):
@@ -41,6 +44,9 @@ class ProgramNode(AbsNode):
 
     def getChildren(self):
         return self.children
+
+    def toString(self):
+        return "Program"
 
     def fold(self):
         for index in range(len(self.children)):
@@ -53,7 +59,7 @@ class UnOpNode(AbsNode):
     def getChildren(self):
         return [self.rhs]
 
-    def __init__(self, rhs,parent = None):
+    def __init__(self, rhs, parent=None):
         super().__init__(parent)
         self.rhs = rhs
 
@@ -62,8 +68,8 @@ class UnOpNode(AbsNode):
 
 
 class UnPlusNode(UnOpNode):
-    def __init__(self, rhs,parent = None):
-        super().__init__(rhs,parent)
+    def __init__(self, rhs, parent=None):
+        super().__init__(rhs, parent)
 
     def toString(self):
         return "+"
@@ -74,8 +80,8 @@ class UnPlusNode(UnOpNode):
 
 
 class UnMinNode(UnOpNode):
-    def __init__(self, rhs,parent = None):
-        super().__init__(rhs,parent)
+    def __init__(self, rhs, parent=None):
+        super().__init__(rhs, parent)
 
     def toString(self):
         return "-"
@@ -86,8 +92,8 @@ class UnMinNode(UnOpNode):
 
 
 class UnNotNode(UnOpNode):
-    def __init__(self, rhs,parent=None):
-        super().__init__(rhs,parent)
+    def __init__(self, rhs, parent=None):
+        super().__init__(rhs, parent)
 
     def toString(self):
         return "!"
@@ -104,7 +110,7 @@ class BinOpNode(AbsNode):
     def getChildren(self):
         return [self.lhs, self.rhs]
 
-    def __init__(self, lhs, rhs,parent=None):
+    def __init__(self, lhs, rhs, parent=None):
         super().__init__(parent)
         self.lhs = lhs
         self.rhs = rhs
@@ -115,7 +121,7 @@ class BinOpNode(AbsNode):
 
 
 class BinPlusNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
+    def __init__(self, lhs, rhs, parent=None):
         super().__init__(lhs, rhs, parent)
 
     def toString(self):
@@ -127,8 +133,8 @@ class BinPlusNode(BinOpNode):
 
 
 class BinMinNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "-"
@@ -139,8 +145,8 @@ class BinMinNode(BinOpNode):
 
 
 class BinMulNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "*"
@@ -151,8 +157,8 @@ class BinMulNode(BinOpNode):
 
 
 class BinDisNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "/"
@@ -163,8 +169,8 @@ class BinDisNode(BinOpNode):
 
 
 class BinLTNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "<"
@@ -175,8 +181,8 @@ class BinLTNode(BinOpNode):
 
 
 class BinEQNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "=="
@@ -187,8 +193,8 @@ class BinEQNode(BinOpNode):
 
 
 class BinGTNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return ">"
@@ -199,8 +205,8 @@ class BinGTNode(BinOpNode):
 
 
 class BinGTENode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent=None)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent=None)
 
     def toString(self):
         return ">="
@@ -211,7 +217,7 @@ class BinGTENode(BinOpNode):
 
 
 class BinLTENode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
+    def __init__(self, lhs, rhs, parent=None):
         super().__init__(lhs, rhs, parent)
 
     def toString(self):
@@ -223,7 +229,7 @@ class BinLTENode(BinOpNode):
 
 
 class BinNENode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
+    def __init__(self, lhs, rhs, parent=None):
         super().__init__(lhs, rhs, parent)
 
     def toString(self):
@@ -235,8 +241,8 @@ class BinNENode(BinOpNode):
 
 
 class BinModNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "%"
@@ -247,8 +253,8 @@ class BinModNode(BinOpNode):
 
 
 class BinAndNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "&&"
@@ -259,8 +265,8 @@ class BinAndNode(BinOpNode):
 
 
 class BinOrNode(BinOpNode):
-    def __init__(self, lhs, rhs,parent=None):
-        super().__init__(lhs, rhs,parent)
+    def __init__(self, lhs, rhs, parent=None):
+        super().__init__(lhs, rhs, parent)
 
     def toString(self):
         return "||"
@@ -271,17 +277,18 @@ class BinOrNode(BinOpNode):
 
 
 class TermNode(AbsNode):
-    def __init__(self,parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
 
 class TermIntNode(TermNode):
-    value = 0
+    value: int
 
-    def __init__(self, value: int,parent=None):
+    def __init__(self, value: int, parent=None):
         super().__init__(parent)
         self.value = value
-
+    def setValue(self, _value:int):
+        self.value = _value
     def toString(self):
         return str(self.value)
 

@@ -26,6 +26,10 @@ type: CHARTYPE|FLOATTYPE|INTTYPE| type MUL;
 value: INT|FLOAT|CHAR;
 
 INT:'0' | [1-9] [0-9]*;
+FLOAT: [0-9]'.'[0.9]*[f];
+char: .;
+
+
 MUL:'*';
 MIN:'-';
 DIS:'/';
@@ -33,6 +37,7 @@ PLUS:'+';
 LT:'<';
 GT:'>';
 EQ:'==';
+ASS:'=';
 LBR: '(';
 RBR: ')';
 AND: '&&';
