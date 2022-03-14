@@ -48,5 +48,4 @@ FLOATTYPE: 'float';
 INTTYPE: 'int';
 VarName: [A-Za-z_] [A-Za-z_0-9]*;
 
-
 WS: [ \n\t\r]+ -> skip;
