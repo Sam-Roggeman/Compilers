@@ -17,9 +17,10 @@ class AST:
 
     def toDot(self, d_format="png"):
         dot = graphviz.Digraph(self._name, comment=self._name)
+        dot = self._root.toDot(dot)
         dot.render(filename="./output/" + self._name + str(self._dotnummer), format=d_format)
         self._dotnummer += 1
-        return self._root.toDot(dot)
+        return
 
     def FindOp(self, tree):
         node = None
