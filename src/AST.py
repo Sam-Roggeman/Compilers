@@ -11,8 +11,7 @@ class AST:
 
     def __init__(self, tree, name=None):
         self._name = name
-        print(type(tree))
-        print(dir(tree))
+
         self._root = self.FindOp(tree)
 
     def toDot(self, d_format="png"):
@@ -21,6 +20,26 @@ class AST:
         dot.render(filename="./output/" + self._name + str(self._dotnummer), format=d_format)
         self._dotnummer += 1
         return
+
+
+    def FindType(self, name,tree):
+        node = None
+
+        if hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
+            node = VariableIntNode(name)
+        elif hasattr(tree.__class__, "FLOATTYPE") and tree.FLOATTYPE():
+            node = VariableFloatNode(name)
+        elif hasattr(tree.__class__, "CHARTYPE") and tree.CHARTYPE():
+            node = VariableCharNode(name)
+        elif hasattr(tree.__class__, "MUL") and tree.MUL():
+            node = PointerNode(name,self.FindType("",tree.getChild(0)))
+
+        if not node:
+            print(type(tree))
+            print(dir(tree))
+            raise NameError("Unknown Node")
+        return node
+
 
     def FindOp(self, tree):
         node = None
@@ -74,8 +93,15 @@ class AST:
 
         elif hasattr(tree.__class__, "LBR") and tree.LBR() and tree.RBR():
             node = self.FindOp(tree.getChild(1))
+
         elif hasattr(tree.__class__, "SEMICOL") and tree.SEMICOL():
             node = self.FindOp(tree.getChild(0))
+        elif hasattr(tree.__class__, "INTTYPE") and tree.INT():
+            child = tree.INT()
+            node = TermIntNode(int(child.getText()))
+        elif hasattr(tree.__class__, "INT") and tree.INT():
+            child = tree.INT()
+            node = TermIntNode(int(child.getText()))
         elif hasattr(tree.__class__, "INT") and tree.INT():
             child = tree.INT()
             node = TermIntNode(int(child.getText()))
@@ -83,7 +109,13 @@ class AST:
             node = ProgramNode()
             for index in range(tree.getChildCount() - 1):
                 node.addchild(self.FindOp(tree.getChild(index)))
+        elif hasattr(tree.__class__, "type") and tree.type():
+            node = self.FindType(tree.getChild(1).getText(),tree.getChild(0))
+        if hasattr(tree.__class__, "ASS") and tree.ASS():
+            node.setValue(tree.getChild(tree.getChildCount()-1).getText())
         if not node:
+            print(type(tree))
+            print(dir(tree))
             raise NameError("Unknown Node")
         return node
 

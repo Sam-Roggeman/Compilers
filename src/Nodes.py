@@ -287,3 +287,99 @@ class TermIntNode(TermNode):
 
     def fold(self):
         return self.value
+
+
+class TermFloatNode(TermNode):
+    value: float
+
+    def __init__(self, value: int, parent=None):
+        super().__init__(parent)
+        self.value = value
+
+    def setValue(self, value: float):
+        self.value = value
+    def toString(self):
+        return str(self.value)
+
+    def fold(self):
+        return self.value
+
+
+class TermCharNode(TermNode):
+    value: str
+    def setValue(self, _value:str):
+        if len(_value) == 1:
+            self.value = _value
+    def __init__(self, value: int, parent=None):
+        super().__init__(parent)
+        self.value = value
+
+    def toString(self):
+        return str(self.value)
+
+    def fold(self):
+        return self.value
+
+
+class PointerNode(AbsNode):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+
+class VariableNode(AbsNode):
+    _name: str
+    _child: TermNode
+
+
+    def __init__(self, name: str, child, parent=None):
+        super().__init__(parent)
+        self._name = name
+        self._child = child
+    def getName(self):
+        return self._name
+    def toString(self):
+        return self.getName() + ": " + self._child.toString()
+    def setValue(self, value):
+        self._child.setValue(value)
+
+class VariableIntNode(VariableNode):
+    def __init__(self, name: str, child: TermIntNode = TermIntNode(0), parent=None):
+        super().__init__(name, child, parent)
+
+    def toString(self):
+        return "int " + super().toString()
+
+
+class VariableFloatNode(VariableNode):
+    def __init__(self, name: str, child: TermFloatNode = TermFloatNode(0), parent=None):
+        super().__init__(name, child, parent)
+
+    def toString(self):
+        return "float " + super().toString()
+
+
+class VariableCharNode(VariableNode):
+    def __init__(self, name: str, child: TermCharNode = TermCharNode(0), parent=None):
+        super().__init__(name, child, parent)
+
+    def toString(self):
+        return "char " + super().toString()
+
+
+
+
+
+class PointerNode(VariableNode):
+    point_to_type: str
+
+    def __init__(self, name: str, child: TermNode or VariableNode, parent=None):
+        super().__init__(name, child, parent)
+        self.point_to_type = type(child)
+    def toString(self):
+        return self._name + "*"
+
+    def pointTo(self, child: TermNode or VariableNode):
+        if type(child) == self.point_to_type:
+            self._child = child
+    def getChildren(self):
+        return [self._child]
