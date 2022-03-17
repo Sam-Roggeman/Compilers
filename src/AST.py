@@ -1,5 +1,6 @@
+
 import graphviz
-from src.Nodes import *
+from SymbolTable import *
 
 
 class AST:
@@ -7,7 +8,9 @@ class AST:
 
     _name = "output"
     _dotnummer = 0
-    _root = None
+    _root: ProgramNode
+    _working_node = None
+    _symbol_table: SymbolTable = SymbolTable()
 
     def __init__(self, tree, name=None):
         self._name = name
@@ -15,14 +18,13 @@ class AST:
         self._root = self.FindOp(tree)
 
     def toDot(self, d_format="png"):
-        dot = graphviz.Digraph(self._name, comment=self._name)
+        dot = graphviz.Digraph(self._name, comment=self._name, strict=True)
         dot = self._root.toDot(dot)
         dot.render(filename="./output/" + self._name + str(self._dotnummer), format=d_format)
         self._dotnummer += 1
         return
 
-
-    def FindType(self, name,tree):
+    def FindType(self, name, tree):
         node = None
 
         if hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
@@ -32,7 +34,10 @@ class AST:
         elif hasattr(tree.__class__, "CHARTYPE") and tree.CHARTYPE():
             node = VariableCharNode(name)
         elif hasattr(tree.__class__, "MUL") and tree.MUL():
-            node = PointerNode(name,self.FindType("",tree.getChild(0)))
+            node = PointerNode(name, self.FindType("", tree.getChild(0)))
+
+        if node.getName():
+            self._symbol_table.append(node)
 
         if not node:
             print(type(tree))
@@ -40,11 +45,15 @@ class AST:
             raise NameError("Unknown Node")
         return node
 
-
     def FindOp(self, tree):
         node = None
         if hasattr(tree.__class__, "MUL") and tree.MUL():
-            node = BinMulNode(self.FindOp(tree.getChild(0)), self.FindOp(tree.getChild(2)))
+            if tree.getChildCount() == 3:
+                node = BinMulNode(self.FindOp(tree.getChild(0)), self.FindOp(tree.getChild(2)))
+            elif tree.getChildCount() == 2:
+                # node = self.findNode(name=tree.getChild(1).getText())
+                self._working_node = self.FindOp(tree.expr()).deRef()
+                node = self._working_node
 
         elif hasattr(tree.__class__, "MOD") and tree.MOD():
             node = BinModNode(self.FindOp(tree.getChild(0)), self.FindOp(tree.getChild(2)))
@@ -96,28 +105,77 @@ class AST:
 
         elif hasattr(tree.__class__, "SEMICOL") and tree.SEMICOL():
             node = self.FindOp(tree.getChild(0))
-        elif hasattr(tree.__class__, "INTTYPE") and tree.INT():
-            child = tree.INT()
+        elif hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
+            child = tree.INTTYPE()
             node = TermIntNode(int(child.getText()))
+
         elif hasattr(tree.__class__, "INT") and tree.INT():
             child = tree.INT()
             node = TermIntNode(int(child.getText()))
-        elif hasattr(tree.__class__, "INT") and tree.INT():
-            child = tree.INT()
-            node = TermIntNode(int(child.getText()))
+        elif hasattr(tree.__class__, "mathExpr") and tree.mathExpr():
+            node = self.FindOp(tree.getChild(0))
         elif hasattr(tree.__class__, "EOF") and tree.EOF():
             node = ProgramNode()
             for index in range(tree.getChildCount() - 1):
                 node.addchild(self.FindOp(tree.getChild(index)))
         elif hasattr(tree.__class__, "type") and tree.type():
-            node = self.FindType(tree.getChild(1).getText(),tree.getChild(0))
-        if hasattr(tree.__class__, "ASS") and tree.ASS():
-            node.setValue(tree.getChild(tree.getChildCount()-1).getText())
+            node = self.FindType(tree.variable().getText(), tree.type())
+            node.setChild(self.FindOp(tree.expr()))
+            if hasattr(tree.__class__, "CONST") and tree.CONST():
+                node.makeConst()
+
+        elif hasattr(tree.__class__, "REF") and tree.REF():
+            name = tree.getChild(tree.getChildCount() - 1).getText()
+            node = self.findNode(name)
+        elif hasattr(tree.__class__, "ASS") and tree.ASS():
+            node = self.findNode(tree.variable().getText())
+            node = node.copy()
+            self._symbol_table.append(node)
+            node.setChild(self.FindOp(tree.expr()))
+
         if not node:
-            print(type(tree))
-            print(dir(tree))
-            raise NameError("Unknown Node")
+            if hasattr(tree.__class__, "variable") and tree.variable():
+                node = self.findNode(tree.variable().getText())
+
+            elif hasattr(tree.__class__, "value") and tree.value():
+                node = self.FindOp(tree.getChild(0))
+            else:
+                print(type(tree))
+                print(dir(tree))
+                raise NameError("Unknown Node")
+
         return node
+
 
     def fold(self):
         self._root.fold()
+
+    def preOrderTraversal(self, oneline=True):
+        string = ""
+        string = self._root.preOrderTraversal(string, oneline)[:-1]
+        return string
+
+    def findNode(self, name: str):
+        deref_count = 0
+        for c in name:
+            if c == '*':
+                deref_count = + 1
+            else:
+                break
+        name = name[deref_count:]
+        s = self._symbol_table.getCurrentVar(varname=name)
+        for i in range(0, deref_count):
+            s = s.deRef()
+        return s
+
+    def replaceConst(self):
+        self._root.replaceConst()
+
+    def optimize(self):
+        self.toDot()
+        self.replaceConst()
+        self.toDot()
+        self._symbol_table.reIndex()
+        self.toDot()
+        self.fold()
+        self.toDot()
