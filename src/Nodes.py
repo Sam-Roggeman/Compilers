@@ -230,7 +230,7 @@ class UnNotNode(UnOpNode):
 
     def fold(self):
         super().fold()
-        return self.rhs != 0
+        return TermIntNode(not self.rhs.value)
 
 
 class BinOpNode(AbsNode):
