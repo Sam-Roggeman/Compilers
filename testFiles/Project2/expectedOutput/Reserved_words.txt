@@ -1,4 +1,4 @@
 #PreOrder before optimize
 Program,const int a0,3,int b0,5,int c0,+,int b0,5,const int a0,3
 #Preorder after optimalizations
-Program,3,int b0,5,int c0,+,int b0,5,3
+Program,const int a0,3,const int b0,5,const int c0,8

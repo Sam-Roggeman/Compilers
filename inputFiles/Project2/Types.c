@@ -8,4 +8,4 @@ float h = 2.1f;
 float i = 5.5f;
 g = h + 1.0f;
 i = g + h;
-char c = 'b';
+char j = 'b';

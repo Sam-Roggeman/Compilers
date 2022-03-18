@@ -192,7 +192,7 @@ class TermIntNode(TermNode):
             return child
         elif isinstance(child, TermFloatNode):
             # warning
-            sys.stderr.write("Warning: Implicit conversion from float to int, possible loss of information | line: " + str(child.getLine()) + "\n")
+            sys.stderr.write("Warning: Implicit conversion from float to int, possible loss of information" + "\n")
             nchild = TermIntNode(int(child.value))
             nchild.addMetaData(child.getMetaData())
             return nchild
@@ -255,12 +255,12 @@ class TermCharNode(TermNode):
         if isinstance(child, TermCharNode):
             return child
         elif isinstance(child, TermFloatNode):
-            sys.stderr.write("Warning: Implicit conversion from float to char, possible loss of information | line: " + str(child.getLine()) + "\n")
+            sys.stderr.write("Warning: Implicit conversion from float to char, possible loss of information " + "\n")
             nchild = TermCharNode(chr(int(child.value)))
             nchild.addMetaData(child.getMetaData())
             return nchild
         elif isinstance(child, TermIntNode):
-            sys.stderr.write("Warning: Implicit conversion from int to char, possible loss of information | line: " + str(child.getLine()) + "\n")
+            sys.stderr.write("Warning: Implicit conversion from int to char, possible loss of information " +  "\n")
             nchild = TermCharNode(chr(child.value))
             nchild.addMetaData(child.getMetaData())
             return nchild
@@ -598,7 +598,7 @@ class VariableNode(AbsNode):
 
     def convertNode(self):
         nchild = self._convertfunction(self._child)
-        nchild.addMetaData(self._child.getMetaData())
+        # nchild.addMetaData(self._child.getMetaData())
         return self.setChild(nchild)
 
     def setChild(self, child: TermNode, index: int = 0):
@@ -701,3 +701,8 @@ class PointerNode(VariableNode):
 
     def getChildren(self):
         return [self._child]
+
+    def convertNode(self):
+        nchild = self._convertfunction()
+        # nchild.addMetaData(self._child.getMetaData())
+        return self.setChild(nchild)
