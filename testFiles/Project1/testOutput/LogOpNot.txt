@@ -1,4 +1,0 @@
-#PreOrder before optimize
-Program,!,1,!,0
-#Preorder after optimalizations
-Program,False,True
