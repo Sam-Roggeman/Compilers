@@ -110,7 +110,7 @@ class AST:
                 node = self.findNode(tree.getChild(2).getText())
             else:
                 node = self.FindOp(tree.getChild(2))
-            node = PrintfNode(node)
+            node = PrintfNode([node])
 
 
         elif hasattr(tree.__class__, "LBR") and tree.LBR() and tree.RBR():
@@ -195,7 +195,8 @@ class AST:
         return s
 
     def replaceConst(self):
-        self._root = self._root.replaceConst()
+        self._symbol_table.replaceConst()
+        # self._root = self._root.replaceConst()
 
     def optimize(self):
         self.toDot(name="start")

@@ -1,6 +1,7 @@
 import copy
 import sys
 
+
 from Errors import *
 
 
@@ -543,6 +544,7 @@ class VariableNode(AbsNode):
     _index: int
     _child: TermNode = None
     const: bool = False
+    _convertfunction = None
 
     def __str__(self):
         return str(self._child)
@@ -564,7 +566,7 @@ class VariableNode(AbsNode):
         self._index = index
 
     def setChild(self, child: TermNode, index: int = 0):
-        child = self._child.convertNode(child)
+        child = self._convertfunction(child)
         if not self.const:
             self._child = child
         else:
@@ -581,6 +583,7 @@ class VariableNode(AbsNode):
         super().__init__(parent)
         self._child = child
         self._name = name
+        self._convertfunction = self._child.convertNode
 
     def getName(self):
         return self._name
@@ -598,6 +601,7 @@ class VariableNode(AbsNode):
     def getType(self):
         return ""
 
+
 class FunctionNode(AbsNode):
     functionName:str
     parameters:list
@@ -612,6 +616,8 @@ class PrintfNode(FunctionNode):
     def __init__(self,parameters):
         super().__init__("printf",parameters)
 
+    def toString(self):
+        return "printf(" + str(self.parameters[0].getValue()) + ")"
 
 class VariableIntNode(VariableNode):
     def __init__(self, name: str, child: TermIntNode = TermIntNode(), parent=None):

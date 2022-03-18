@@ -8,11 +8,14 @@ if [ ! -d "./env/" ]
 then
 #  make one
   virtualenv env
+  #activate the env
+  source "./env/bin/activate"
 #  install the necessary packages
   pip3 install -r ./requirements.txt
+else
+  #activate the env
+  source "./env/bin/activate"
 fi
-#activate the env
-source "./env/bin/activate"
 # loop over all of the projects
 for projectnr in 0 1 2
 do

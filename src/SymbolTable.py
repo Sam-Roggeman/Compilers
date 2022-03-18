@@ -40,3 +40,10 @@ class SymbolTable:
         for node in self.variables[varnode.getName()]:
             if node == varnode:
                 self.variables[varnode.getName()].remove(node)
+
+    def replaceConst(self):
+        for keys,values in self.variables.items():
+            if len(values) == 1:
+                values[0].makeConst()
+                values[0].replaceConst()
+
