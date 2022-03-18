@@ -142,6 +142,8 @@ class AST:
             node = self.findNode(name)
         elif hasattr(tree.__class__, "ASS") and tree.ASS():
             node = self.findNode(tree.variable().getText())
+            if(not node.isLvalue()):
+                RValueException()
             node = node.copy()
             self._symbol_table.append(node)
             node.setChild(self.FindOp(tree.expr()))

@@ -20,7 +20,6 @@ variable
     ;
 
 
-
 mathExpr
     : (PLUS|MIN|NOT) mathExpr
     | mathExpr (MUL|DIS|MOD) mathExpr

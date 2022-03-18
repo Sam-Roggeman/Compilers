@@ -61,9 +61,13 @@ class AbsNode:
 
         return string
 
+    def isLvalue(self):
+        return self._lvalue
 
 
 class TermNode(AbsNode):
+    _lvalue = False
+    value = None
 
     def setValue(self, value):
         self.value = value
