@@ -1,2 +1,2 @@
-int a = 0;
-int* v;
+float a = 1.1f;
+printf(a);

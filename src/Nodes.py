@@ -69,6 +69,9 @@ class TermNode(AbsNode):
     _lvalue = False
     value = None
 
+    def __str__(self):
+        return str(self.value)
+
     def setValue(self, value):
         self.value = value
 
@@ -541,6 +544,9 @@ class VariableNode(AbsNode):
     _child: TermNode = None
     const: bool = False
 
+    def __str__(self):
+        return str(self._child)
+
     def replaceConst(self):
         self._child.replaceConst()
         if self.const:
@@ -591,6 +597,20 @@ class VariableNode(AbsNode):
 
     def getType(self):
         return ""
+
+class FunctionNode(AbsNode):
+    functionName:str
+    parameters:list
+
+    def __init__(self,name,parameters):
+        super().__init__()
+        self.functionName = name
+        self.parameters = parameters
+
+class PrintfNode(FunctionNode):
+
+    def __init__(self,parameters):
+        super().__init__("printf",parameters)
 
 
 class VariableIntNode(VariableNode):

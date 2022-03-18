@@ -6,6 +6,7 @@ startRule
 
 expr
     : mathExpr
+    | printf
     | type variable
     | variable ASS expr
     | (CONST)? type variable ASS expr
@@ -36,10 +37,13 @@ logOp: AND|OR;
 compOp: LT|GT|EQ|LTE|GTE|NE;
 type: CHARTYPE|FLOATTYPE|INTTYPE| type MUL;
 value: INT|FLOAT|CHAR;
+printf: 'printf' '(' (VarName | value) ')';
+
 
 INT:'0' | [1-9] [0-9]*;
 FLOAT: [0-9]+[.][0-9]+[f];
 CHAR: ['].['];
+
 
 CONST: 'const';
 MUL:'*';

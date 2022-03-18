@@ -104,6 +104,15 @@ class AST:
         elif hasattr(tree.__class__, "NE") and tree.NE():
             node = BinNENode(self.FindOp(tree.getChild(0)), self.FindOp(tree.getChild(2)))
 
+        elif hasattr(tree.__class__, "printf") and tree.printf():
+            tree = tree.printf()
+            if hasattr(tree.__class__, "VarName") and tree.VarName():
+                node = self.findNode(tree.getChild(2).getText())
+            else:
+                node = self.FindOp(tree.getChild(2))
+            node = PrintfNode(node)
+
+
         elif hasattr(tree.__class__, "LBR") and tree.LBR() and tree.RBR():
             node = self.FindOp(tree.getChild(1))
 
@@ -151,7 +160,6 @@ class AST:
         if not node:
             if hasattr(tree.__class__, "variable") and tree.variable():
                 node = self.findNode(tree.variable().getText())
-
             elif hasattr(tree.__class__, "value") and tree.value():
                 node = self.FindOp(tree.getChild(0))
             else:
