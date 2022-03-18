@@ -1,8 +1,8 @@
 #!/bin/bash
-# Save the startpath so we can go back to it
-originalpath="$(pwd)"
 # cd to the root of the project
+
 cd "$(cd "$(dirname "$0")" && pwd)/../" || exit
+source ./build.sh ../
 # if an env directory is not present
 if [ ! -d "./env/" ]
 then
@@ -12,6 +12,8 @@ then
   source "./env/bin/activate"
 #  install the necessary packages
   pip3 install -r ./requirements.txt
+#  generate the grammar
+  sudo java -jar antlr.jar -Dlanguage=Python3 ./src/g4_files/CGrammar.g4
 else
   #activate the env
   source "./env/bin/activate"
@@ -79,4 +81,3 @@ do
   done
 done
 
-cd "$originalpath" || exit
