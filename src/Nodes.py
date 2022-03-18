@@ -10,6 +10,12 @@ class AbsNode:
     _metadata: MetaData
     _lvalue = True
 
+    def getLeftMostChild(self):
+        children = self.getChildren()
+        if len(children):
+            return children[0].getLeftMostChild()
+        else:
+            return self
     def getLine(self):
         return self._metadata.getLine()
 
@@ -18,6 +24,9 @@ class AbsNode:
 
     def addMetaData(self, metadata: MetaData):
         self._metadata = metadata
+
+    def getMetaData(self):
+        return self._metadata
 
     def setChild(self, child, index: int = 0):
         pass
@@ -163,6 +172,10 @@ class TermNode(AbsNode):
 
 
 class TermIntNode(TermNode):
+    def __truediv__(self, other):
+        other = self.convertNode(other)
+        self.setValue(self.value // other.value)
+        return self
 
     def __init__(self, value: int=None, parent=None):
         super().__init__(value, parent)
@@ -179,10 +192,16 @@ class TermIntNode(TermNode):
             return child
         elif isinstance(child, TermFloatNode):
             # warning
-            sys.stderr.write("Warning: Implicit conversion from float to int, possible loss of information | line: " + str(child.getLine()) + "\n")
-            return TermIntNode(int(child.value))
+            sys.stderr.write("Warning: Implicit conversion from float to int, possible loss of information | line: " + str(self.getLine()) + "\n")
+            nchild = TermIntNode(int(child.value))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
         elif isinstance(child, TermCharNode):
-            return TermIntNode(ord(child.value))
+            nchild = TermIntNode(ord(child.value))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
+        elif len(child.getChildren()) != 0:
+            child.setChild(self.convertNode(child.getChildren()[0]), 0)
         return child
 
 class TermFloatNode(TermNode):
@@ -202,9 +221,16 @@ class TermFloatNode(TermNode):
         if isinstance(child, TermFloatNode):
             return child
         elif isinstance(child, TermIntNode):
-            child = TermFloatNode(float(child.value))
+            nchild = TermFloatNode(float(child.value))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
+
         elif isinstance(child, TermCharNode):
-            child = TermFloatNode(float(ord(child.value)))
+            nchild = TermFloatNode(float(ord(child.value)))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
+        elif len(child.getChildren()) != 0:
+            child.setChild(self.convertNode(child.getChildren()[0]),0)
         return child
 
 
@@ -229,13 +255,18 @@ class TermCharNode(TermNode):
         if isinstance(child, TermCharNode):
             return child
         elif isinstance(child, TermFloatNode):
-            sys.stderr.write("Warning: Implicit conversion from float to char, possible loss of information | line: " + str(child.getLine()) + "\n")
-            child = TermCharNode(chr(int(child.value)))
+            sys.stderr.write("Warning: Implicit conversion from float to char, possible loss of information | line: " + str(self.getLine()) + "\n")
+            nchild = TermCharNode(chr(int(child.value)))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
         elif isinstance(child, TermIntNode):
-            sys.stderr.write("Warning: Implicit conversion from int to char, possible loss of information | line: " + str(child.getLine()) + "\n")
-            child = TermCharNode(chr(child.value))
+            sys.stderr.write("Warning: Implicit conversion from int to char, possible loss of information | line: " + str(self.getLine()) + "\n")
+            nchild = TermCharNode(chr(child.value))
+            nchild.addMetaData(child.getMetaData())
+            return nchild
+        elif len(child.getChildren()) != 0:
+            child.setChild(self.convertNode(child.getChildren()[0]), 0)
         return child
-
 
 class ProgramNode(AbsNode):
     children = []
@@ -565,8 +596,10 @@ class VariableNode(AbsNode):
     def setIndex(self, index: int):
         self._index = index
 
+    def convertNode(self):
+        return self.setChild(self._convertfunction(self._child))
+
     def setChild(self, child: TermNode, index: int = 0):
-        child = self._convertfunction(child)
         if not self.const:
             self._child = child
         else:
@@ -602,6 +635,7 @@ class VariableNode(AbsNode):
         return ""
 
 
+
 class FunctionNode(AbsNode):
     functionName:str
     parameters:list
@@ -617,7 +651,7 @@ class PrintfNode(FunctionNode):
         super().__init__("printf",parameters)
 
     def toString(self):
-        return "printf(" + str(self.parameters[0].getValue()) + ")"
+        return "printf(" + str(self.parameters[0]) + ")"
 
 class VariableIntNode(VariableNode):
     def __init__(self, name: str, child: TermIntNode = TermIntNode(), parent=None):

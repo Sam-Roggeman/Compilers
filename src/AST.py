@@ -143,6 +143,7 @@ class AST:
         elif hasattr(tree.__class__, "type") and tree.type():
             node = self.FindType(tree.variable().getText(), tree.type())
             node.setChild(self.FindOp(tree.expr()))
+            node.convertNode()
             if hasattr(tree.__class__, "CONST") and tree.CONST():
                 node.makeConst()
 
