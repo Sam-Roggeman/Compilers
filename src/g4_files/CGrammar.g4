@@ -20,6 +20,7 @@ variable
     ;
 
 
+
 mathExpr
     : (PLUS|MIN|NOT) mathExpr
     | mathExpr (MUL|DIS|MOD) mathExpr
@@ -38,8 +39,8 @@ type: CHARTYPE|FLOATTYPE|INTTYPE| type MUL;
 value: INT|FLOAT|CHAR;
 
 INT:'0' | [1-9] [0-9]*;
-FLOAT: [0-9]'.'[0.9]*[f];
-char: .;
+FLOAT: [0-9]+[.][0-9]+[f];
+CHAR: ['].['];
 
 CONST: 'const';
 MUL:'*';
@@ -66,5 +67,6 @@ INTTYPE: 'int';
 VarName: [A-Za-z_] [A-Za-z_0-9]*;
 REF: '&';
 
+BlockComment: '/*' .*? '*/' -> skip;
 Comment: '//' ~[\n]* -> skip;
 WS: [ \n\t\r]+ -> skip;

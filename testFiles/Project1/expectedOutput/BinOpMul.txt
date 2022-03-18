@@ -1,0 +1,4 @@
+#PreOrder before optimize
+Program,*,2,90,*,11,11,*,*,52,55,3,*,*,142,1024,2,*,*,1212,854,4
+#Preorder after optimalizations
+Program,180,121,8580,290816,4140192

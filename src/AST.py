@@ -1,4 +1,3 @@
-
 import graphviz
 from SymbolTable import *
 
@@ -7,26 +6,30 @@ class AST:
     # todo parent
 
     _name = "output"
-    _dotnummer = 0
     _root: ProgramNode
     _working_node = None
+    _last_entered_treenode = None
     _symbol_table: SymbolTable = SymbolTable()
 
     def __init__(self, tree, name=None):
         self._name = name
+        try:
+            self._root = self.FindOp(tree)
+        except GeneralException as e:
+            tree = self._last_entered_treenode
+            e.setMetaData(metadata=MetaData(line=tree.start.line,start_character=tree.start.column))
+            raise e
 
-        self._root = self.FindOp(tree)
-
-    def toDot(self, d_format="png"):
+    def toDot(self, name: str, d_format="png"):
         dot = graphviz.Digraph(self._name, comment=self._name, strict=True)
         dot = self._root.toDot(dot)
-        dot.render(filename="./output/" + self._name + str(self._dotnummer), format=d_format)
-        self._dotnummer += 1
+        dot.render(filename="./output/" + self._name + "/" + name, format=d_format)
         return
 
     def FindType(self, name, tree):
         node = None
-
+        if (self._symbol_table.isVar(name)):
+           raise RedefinitionException(name)
         if hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
             node = VariableIntNode(name)
         elif hasattr(tree.__class__, "FLOATTYPE") and tree.FLOATTYPE():
@@ -47,6 +50,7 @@ class AST:
 
     def FindOp(self, tree):
         node = None
+        self._last_entered_treenode = tree
         if hasattr(tree.__class__, "MUL") and tree.MUL():
             if tree.getChildCount() == 3:
                 node = BinMulNode(self.FindOp(tree.getChild(0)), self.FindOp(tree.getChild(2)))
@@ -105,13 +109,22 @@ class AST:
 
         elif hasattr(tree.__class__, "SEMICOL") and tree.SEMICOL():
             node = self.FindOp(tree.getChild(0))
-        elif hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
-            child = tree.INTTYPE()
-            node = TermIntNode(int(child.getText()))
+        # elif hasattr(tree.__class__, "INTTYPE") and tree.INTTYPE():
+        #     child = tree.INTTYPE()
+        #     node = TermIntNode(int(child.getText()))
 
         elif hasattr(tree.__class__, "INT") and tree.INT():
             child = tree.INT()
             node = TermIntNode(int(child.getText()))
+
+        elif hasattr(tree.__class__, "CHAR") and tree.CHAR():
+            child = tree.CHAR()
+            node = TermCharNode(child.getText()[1:-1])
+
+        elif hasattr(tree.__class__, "FLOAT") and tree.FLOAT():
+            child = tree.FLOAT()
+            text = child.getText()[:-1]
+            node = TermFloatNode(float(text))
         elif hasattr(tree.__class__, "mathExpr") and tree.mathExpr():
             node = self.FindOp(tree.getChild(0))
         elif hasattr(tree.__class__, "EOF") and tree.EOF():
@@ -143,8 +156,11 @@ class AST:
                 print(type(tree))
                 print(dir(tree))
                 raise NameError("Unknown Node")
-
+        # print(dir(tree.start))
+        node.addMetaData(metadata=MetaData(line=tree.start.line,start_character=tree.start.column))
         return node
+
+
 
 
     def fold(self):
@@ -169,13 +185,12 @@ class AST:
         return s
 
     def replaceConst(self):
-        self._root.replaceConst()
+        self._root = self._root.replaceConst()
 
     def optimize(self):
-        self.toDot()
+        self.toDot(name="start")
         self.replaceConst()
-        self.toDot()
         self._symbol_table.reIndex()
-        self.toDot()
+        self.toDot(name="after_const")
         self.fold()
-        self.toDot()
+        self.toDot(name="end")

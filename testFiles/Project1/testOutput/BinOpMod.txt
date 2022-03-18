@@ -1,0 +1,4 @@
+#PreOrder before optimize
+Program,%,3,2,%,2,2,%,10,4,%,99,100,%,80,5
+#Preorder after optimalizations
+Program,1,0,2,99,0

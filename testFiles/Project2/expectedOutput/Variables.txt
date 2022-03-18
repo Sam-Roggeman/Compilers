@@ -1,0 +1,4 @@
+#PreOrder before optimize
+Program,int a0,5,int a1,+,1,2,float _b0,2.0,char _v20,g
+#Preorder after optimalizations
+Program,int a0,5,int a1,3,float _b0,2.0,char _v20,g

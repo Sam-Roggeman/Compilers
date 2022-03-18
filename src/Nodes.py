@@ -1,13 +1,30 @@
 import copy
+import sys
+
+from Errors import *
 
 
 class AbsNode:
     parent = None
+    _metadata: MetaData
+    _lvalue = True
+
+    def getLine(self):
+        return self._metadata.getLine()
+
+    def getColumn(self):
+        return self._metadata.getColumn()
+
+    def addMetaData(self, metadata: MetaData):
+        self._metadata = metadata
+
+    def setChild(self, child, index: int = 0):
+        pass
 
     def replaceConst(self):
         children = self.getChildren()
         for index in range(len(children)):
-            children[index] = children[index].replaceConst()
+            self.setChild(self.getChildren()[index].replaceConst(), index)
         return self
 
     def __init__(self, parent=None):
@@ -45,6 +62,7 @@ class AbsNode:
         return string
 
 
+
 class TermNode(AbsNode):
 
     def setValue(self, value):
@@ -53,47 +71,62 @@ class TermNode(AbsNode):
     def getValue(self):
         return self
 
+    def convertNode(self, child):
+        return child
+
     def __init__(self, value, parent=None):
         super().__init__(parent)
         self.value = value
 
     def __add__(self, other):
         b = copy.deepcopy(self)
+        other = self.convertNode(other)
         b.setValue(self.value + other.value)
         return b
 
     def __sub__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value - other.value)
         return self
 
     def __mul__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value * other.value)
         return self
 
     def __truediv__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value / other.value)
+
         return self
 
     def __lt__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value < other.value)
 
     def __mod__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value % other.value)
         return self
 
     def __gt__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value > other.value)
 
     def __le__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value <= other.value)
 
     def __ge__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value >= other.value)
 
     def __eq__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value == other.value)
 
     def __ne__(self, other):
+        other = self.convertNode(other)
         return TermIntNode(self.value != other.value)
 
     def __neg__(self):
@@ -101,13 +134,16 @@ class TermNode(AbsNode):
         return self
 
     def __pos__(self, other):
+        other = self.convertNode(other)
         return self
 
     def __and__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value & other.value)
         return self
 
     def __or__(self, other):
+        other = self.convertNode(other)
         self.setValue(self.value | other.value)
         return self
 
@@ -120,50 +156,84 @@ class TermNode(AbsNode):
 
 class TermIntNode(TermNode):
 
-    def __init__(self, value: int, parent=None):
+    def __init__(self, value: int=None, parent=None):
         super().__init__(value, parent)
 
     def setValue(self, _value: int):
+        _value = int(_value)
         super().setValue(_value)
 
     def toString(self):
         return str(self.value)
 
-    def __truediv__(self, other):
-        self.setValue(self.value // other.value)
-        return self
-
+    def convertNode(self, child: TermNode):
+        if isinstance(child, TermIntNode):
+            return child
+        elif isinstance(child, TermFloatNode):
+            # warning
+            sys.stderr.write("Warning: Implicit conversion from float to int, possible loss of information | line: " + str(child.getLine()) + "\n")
+            return TermIntNode(int(child.value))
+        elif isinstance(child, TermCharNode):
+            return TermIntNode(ord(child.value))
+        return child
 
 class TermFloatNode(TermNode):
 
-    def __init__(self, value: int, parent=None):
+    def __init__(self, value: float= None, parent=None):
         super().__init__(value, parent)
 
     def setValue(self, _value: float):
+        _value = float(_value)
+
         super().setValue(_value)
 
     def toString(self):
         return str(self.value)
+
+    def convertNode(self, child: TermNode):
+        if isinstance(child, TermFloatNode):
+            return child
+        elif isinstance(child, TermIntNode):
+            child = TermFloatNode(float(child.value))
+        elif isinstance(child, TermCharNode):
+            child = TermFloatNode(float(ord(child.value)))
+        return child
 
 
 class TermCharNode(TermNode):
 
     def setValue(self, _value: str):
+        _value = str(_value)
+
         if len(_value) == 1:
             super().setValue(_value)
 
-    def __init__(self, value: str, parent=None):
+    def __init__(self, value: str = None, parent=None):
         super().__init__(value, parent)
 
     def toString(self):
         return str(self.value)
 
     def fold(self):
-        return self.value
+        return self
+
+    def convertNode(self, child: TermNode):
+        if isinstance(child, TermCharNode):
+            return child
+        elif isinstance(child, TermFloatNode):
+            sys.stderr.write("Warning: Implicit conversion from float to char, possible loss of information | line: " + str(child.getLine()) + "\n")
+            child = TermCharNode(chr(int(child.value)))
+        elif isinstance(child, TermIntNode):
+            sys.stderr.write("Warning: Implicit conversion from int to char, possible loss of information | line: " + str(child.getLine()) + "\n")
+            child = TermCharNode(chr(child.value))
+        return child
 
 
 class ProgramNode(AbsNode):
     children = []
+
+    def setChild(self, child: AbsNode, index: int = 0):
+        self.children[index] = child
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -182,9 +252,12 @@ class ProgramNode(AbsNode):
             self.children[index] = self.children[index].fold()
 
 
-
 class UnOpNode(AbsNode):
     rhs = None
+
+    def setChild(self, child, index: int = 0):
+        if index == 0:
+            self.rhs = child
 
     def getChildren(self):
         return [self.rhs]
@@ -218,7 +291,10 @@ class UnMinNode(UnOpNode):
 
     def fold(self):
         super().fold()
-        return - self.rhs.getValue()
+        if isinstance(self.rhs, TermNode):
+            return - self.rhs.getValue()
+        else:
+            return self
 
 
 class UnNotNode(UnOpNode):
@@ -230,12 +306,21 @@ class UnNotNode(UnOpNode):
 
     def fold(self):
         super().fold()
-        return TermIntNode(not self.rhs.value)
+        if isinstance(self.rhs, TermNode):
+            return TermIntNode(not self.rhs.value)
+        else:
+            return self
 
 
 class BinOpNode(AbsNode):
     lhs: TermNode
     rhs: TermNode
+
+    def setChild(self, child, index: int = 0):
+        if index == 0:
+            self.lhs = child
+        elif index == 1:
+            self.rhs = child
 
     def getChildren(self):
         return [self.lhs, self.rhs]
@@ -260,10 +345,10 @@ class BinPlusNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        # if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
-        return self.lhs.getValue() + self.rhs.getValue()
-        # else:
-        #     return self
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() + self.rhs.getValue()
+        else:
+            return self
 
 
 class BinMinNode(BinOpNode):
@@ -275,7 +360,10 @@ class BinMinNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() - self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() - self.rhs.getValue()
+        else:
+            return self
 
 
 class BinMulNode(BinOpNode):
@@ -287,7 +375,10 @@ class BinMulNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() * self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() * self.rhs.getValue()
+        else:
+            return self
 
 
 class BinDisNode(BinOpNode):
@@ -299,7 +390,10 @@ class BinDisNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() / self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() / self.rhs.getValue()
+        else:
+            return self
 
 
 class BinLTNode(BinOpNode):
@@ -311,7 +405,10 @@ class BinLTNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() < self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() < self.rhs.getValue()
+        else:
+            return self
 
 
 class BinEQNode(BinOpNode):
@@ -323,7 +420,10 @@ class BinEQNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() == self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() == self.rhs.getValue()
+        else:
+            return self
 
 
 class BinGTNode(BinOpNode):
@@ -335,7 +435,10 @@ class BinGTNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() > self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() > self.rhs.getValue()
+        else:
+            return self
 
 
 class BinGTENode(BinOpNode):
@@ -347,7 +450,10 @@ class BinGTENode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() >= self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() >= self.rhs.getValue()
+        else:
+            return self
 
 
 class BinLTENode(BinOpNode):
@@ -359,7 +465,10 @@ class BinLTENode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() <= self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() <= self.rhs.getValue()
+        else:
+            return self
 
 
 class BinNENode(BinOpNode):
@@ -371,7 +480,10 @@ class BinNENode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() != self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() != self.rhs.getValue()
+        else:
+            return self
 
 
 class BinModNode(BinOpNode):
@@ -383,7 +495,10 @@ class BinModNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() % self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() % self.rhs.getValue()
+        else:
+            return self
 
 
 class BinAndNode(BinOpNode):
@@ -395,7 +510,10 @@ class BinAndNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        return self.lhs.getValue() and self.rhs.getValue()
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() & self.rhs.getValue()
+        else:
+            return self
 
 
 class BinOrNode(BinOpNode):
@@ -407,24 +525,20 @@ class BinOrNode(BinOpNode):
 
     def fold(self):
         super().fold()
-        # if isinstance(self.lhs, TermNode) and isinstance(self.rhs):
-        return self.lhs.getValue() or self.rhs.getValue()
-        # else:
-        #     return self
-
-
-class PointerNode(AbsNode):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+        if isinstance(self.lhs, TermNode) and isinstance(self.rhs, TermNode):
+            return self.lhs.getValue() | self.rhs.getValue()
+        else:
+            return self
 
 
 class VariableNode(AbsNode):
     _name: str
     _index: int
-    _child: TermNode
+    _child: TermNode = None
     const: bool = False
 
     def replaceConst(self):
+        self._child.replaceConst()
         if self.const:
             return self._child
         else:
@@ -439,11 +553,12 @@ class VariableNode(AbsNode):
     def setIndex(self, index: int):
         self._index = index
 
-    def setChild(self, child: TermNode):
+    def setChild(self, child: TermNode, index: int = 0):
+        child = self._child.convertNode(child)
         if not self.const:
             self._child = child
         else:
-            raise TypeError("Const qualified object \"" + self.getName() + "\" cannot be changed")
+            raise ConstException(varname=self._name, metadata=child._metadata)
 
     def getChildren(self):
         return [self._child]
@@ -452,10 +567,10 @@ class VariableNode(AbsNode):
         self._child = self._child.fold()
         return self
 
-    def __init__(self, name: str, child, parent=None):
+    def __init__(self, name: str, child: TermNode, parent=None):
         super().__init__(parent)
-        self._name = name
         self._child = child
+        self._name = name
 
     def getName(self):
         return self._name
@@ -464,40 +579,34 @@ class VariableNode(AbsNode):
         string = ""
         if self.const:
             string += "const "
-        string += self.getType() + self.getName() + str(self._index)
+        string += self.getType() + " " + self.getName() + str(self._index)
         return string
 
     def getValue(self):
-        return self._child
+        return self
 
     def getType(self):
         return ""
 
 
 class VariableIntNode(VariableNode):
-    def __init__(self, name: str, child: TermIntNode = None, parent=None):
-        if not child:
-            child = TermIntNode(0)
+    def __init__(self, name: str, child: TermIntNode = TermIntNode(), parent=None):
         super().__init__(name, child, parent)
 
     def getType(self):
-        return "int "
+        return "int"
 
 
 class VariableFloatNode(VariableNode):
-    def __init__(self, name: str, child: TermFloatNode = None, parent=None):
-        if not child:
-            child = TermFloatNode(0)
+    def __init__(self, name: str, child: TermFloatNode = TermFloatNode(), parent=None):
         super().__init__(name, child, parent)
 
     def getType(self):
-        return "float "
+        return "float"
 
 
 class VariableCharNode(VariableNode):
-    def __init__(self, name: str, child: TermCharNode = None, parent=None):
-        if not child:
-            child = TermCharNode("")
+    def __init__(self, name: str, child: TermCharNode = TermCharNode(), parent=None):
         super().__init__(name, child, parent)
 
     def getType(self):
@@ -517,7 +626,7 @@ class PointerNode(VariableNode):
     def deRef(self):
         return self._child
 
-    def setChild(self, child: TermNode):
+    def setChild(self, child: TermNode, index: int = 0):
         self.pointTo(child)
 
     def pointTo(self, child: TermNode or VariableNode):

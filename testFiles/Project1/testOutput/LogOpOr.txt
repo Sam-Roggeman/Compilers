@@ -1,0 +1,4 @@
+#PreOrder before optimize
+Program,||,1,1,||,1,0,||,0,1,||,0,0
+#Preorder after optimalizations
+Program,1,1,1,0

@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "./src/main.py", line 34, in <module>
+    main(sys.argv)
+  File "./src/main.py", line 25, in main
+    a = AST(tree=tree, name=name)
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 21, in __init__
+    raise e
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 17, in __init__
+    self._root = self.FindOp(tree)
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 133, in FindOp
+    node.addchild(self.FindOp(tree.getChild(index)))
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 111, in FindOp
+    node = self.FindOp(tree.getChild(0))
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 135, in FindOp
+    node = self.FindType(tree.variable().getText(), tree.type())
+  File "/mnt/c/Users/samro/OneDrive - Universiteit Antwerpen/Documenten/School/2021-2022/Compilers/Compiler/src/AST.py", line 32, in FindType
+    raise RedefinitionException(name)
+Errors.RedefinitionException: error: redefinition of "c" on line 11
