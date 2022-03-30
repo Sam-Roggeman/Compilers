@@ -1,9 +1,9 @@
 import sys
 from antlr4 import *
 
-from g4_files.CGrammarLexer import CGrammarLexer
-from g4_files.CGrammarParser import CGrammarParser
-from g4_files.CGrammarVisitor import CGrammarVisitor
+from g4_files.CGrammar2Lexer import CGrammar2Lexer
+from g4_files.CGrammar2Parser import CGrammar2Parser
+from CSTVisitor import CGrammar2VisitorImplementation
 from AST import *
 
 
@@ -16,18 +16,18 @@ def main(argv):
         name = name[13:-2]
 
     input_stream = FileStream(inputlocation)
-    lexer = CGrammarLexer(input_stream)
+    lexer = CGrammar2Lexer(input_stream)
     stream = CommonTokenStream(lexer)
-    parser = CGrammarParser(stream)
+    parser = CGrammar2Parser(stream)
     tree = parser.startRule()
-    # visitor = CGrammarVisitor()
-    # visitor.visitStartRule(tree)
-    a = AST(tree=tree, name=name)
+    visitor = CGrammar2VisitorImplementation()
+    a = AST(root=visitor.visitStartRule(ctx=tree),name=name)
+    # a = AST(tree=tree, name=name)
     print("#PreOrder before optimize")
-    print(a.preOrderTraversal(True))
+    print(a.preOrderTraversal(oneline=True))
     a.optimize()
     print("#Preorder after optimalizations")
-    print(a.preOrderTraversal(True))
+    print(a.preOrderTraversal(oneline=True))
 
 
 if __name__ == '__main__':

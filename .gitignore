@@ -16,3 +16,13 @@ src/__pycache__/
 src/g4_files/__pycache__/
 /examples/
 **/.idea/
+/testFiles/Project1/comparisonErrors.txt
+/testFiles/Project0/comparisonErrors.txt
+/testFiles/Project1/Result.txt
+/testFiles/Project0/Result.txt
+/testFiles/Project2/comparisonErrors.txt
+/testFiles/Project2/Result.txt
+/testFiles/Project3/comparisonErrors.txt
+/testFiles/Project3/Result.txt
+/testFiles/Project4/comparisonErrors.txt
+/testFiles/Project5/Result.txt

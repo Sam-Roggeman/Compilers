@@ -15,7 +15,7 @@ class VariableTable(list):
 
 class SymbolTable:
     #dict[str, VariableTable]
-    variables = {}
+    variables = dict()
 
     def append(self, node: VariableNode):
         if not node.getName() in self.variables:

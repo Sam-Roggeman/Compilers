@@ -2,7 +2,7 @@
 # cd to the root of the project
 
 cd "$(cd "$(dirname "$0")" && pwd)/../" || exit
-source ./build.sh ../
+#source ./build.sh ../
 # if an env directory is not present
 if [ ! -d "./env/" ]
 then
@@ -66,16 +66,20 @@ do
 #   remove the temp files
     rm ./temp1.txt
     rm ./temp2.txt
+    RED='\033[0;31m'
+    ORANGE='\033[0;33m'
+    NC='\033[0m' # No Color
 #    if test passed
     if [ "${success}" = "True" ]; then
         echo "${name} has PASSED the test."
     else
 #      elif not passed
       if [ "${success}" = "False" ]; then
-        echo "${name} has NOT PASSED the test."
+
+        echo -e "${RED}${name} has NOT PASSED the test.${NC}"
       else
 #        else
-        echo "An error has occured comparing expected and actual output of ${name}, check comparisonErrors.txt for more information."
+        echo -e "${ORANGE}An error has occured comparing expected and actual output of ${name}, check comparisonErrors.txt for more information.${NC}"
       fi
     fi
   done
