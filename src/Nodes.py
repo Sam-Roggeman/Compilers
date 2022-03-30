@@ -374,8 +374,10 @@ class BinOpNode(AbsNode):
     def setChild(self, child, index: int = 0):
         if index == 0:
             self.lhs = child
+            self.lhs.parent = self
         elif index == 1:
             self.rhs = child
+            self.rhs.parent = self
 
     def setChildren(self, lhs, rhs):
         self.lhs = lhs
@@ -710,6 +712,7 @@ class RefNode(AbsNode):
 
     def setChild(self, child, index: int = 0):
         self.child = child
+        self.child.setParent(self)
 
     def __init__(self):
         super().__init__()
@@ -741,6 +744,7 @@ class PointerNode(VariableNode):
 
     def setChild(self, child: TermNode, index: int = 0):
         self.pointTo(child)
+        self._child.setParent(self)
 
     def pointTo(self, child: TermNode or VariableNode):
         if type(child) == self.point_to_type:
