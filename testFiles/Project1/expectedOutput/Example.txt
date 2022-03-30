@@ -1,4 +1,4 @@
 #PreOrder before optimize
-Program,int a0,1,int b0,2,int c0,+,int a0,1,int b0,2
+Program,=,int a,1,=,int b,2,=,int c,+,a,b
 #Preorder after optimalizations
-Program,const int a0,1,const int b0,2,const int c0,3
+Program,=,const int a,1,=,const int b,2,=,const int c,+,a,b

@@ -95,32 +95,48 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
 
     # Visit a parse tree produced by CGrammar2Parser#declaration_assignment.
     def visitDeclaration_assignment(self, ctx: CGrammar2Parser.Declaration_assignmentContext):
-        node = None
-        if ctx.types_specifier():
-            node = self.visit(ctx.types_specifier())
-        elif ctx.pointertype():
-            node = self.visit(ctx.pointertype())
-        name = ctx.variable()[0].getText()
-        if ctx.rvalue():
-            rvalue = self.visit(ctx.rvalue())
-            node.setName(name)
-            node.setChild(rvalue)
-        # elif ctx.REF():
-        #     node = RefNode()
-        #     node.setChild()
+        node1 = None
+        node2 = None
 
-        self._symbol_table.append(node)
+        # Node1
+        if ctx.types_specifier():
+            node1 = self.visit(ctx.types_specifier())
+        elif ctx.pointertype():
+            node1 = self.visit(ctx.pointertype())
+        name = ctx.variable()[0].getText()
+        node1.setName(name)
+        self._symbol_table.append(node1)
         if ctx.CONST():
-            node.makeConst()
-        return node
+            node1.makeConst()
+
+        # Node2
+        if ctx.rvalue():
+            node2 = self.visit(ctx.rvalue())
+        elif ctx.REF():
+            node2 = RefNode()
+            node2.setChild(self.visit(ctx.variable())[1])
+
+        assinmentNode = AssNode()
+        assinmentNode.setChild(node1,0)
+        assinmentNode.setChild(node2,1)
+        return assinmentNode
 
     # Visit a parse tree produced by CGrammar2Parser#assignment.
     def visitAssignment(self, ctx: CGrammar2Parser.AssignmentContext):
-        name = ctx.variable().getText()
-        rvalue = self.visit(ctx.rvalue())
-        node = self.findNode(name=name)
-        node.setChild(rvalue)
-        return node
+        node1 = None
+        node2 = None
+        # todo error report
+        name = ctx.variable()[0].getText()
+
+        node1 = VariableNameNode()
+        node1.setName(name=name)
+        # Node2
+        node2 = self.visit(ctx.rvalue())
+
+        assinmentNode = AssNode()
+        assinmentNode.setChild(node1,0)
+        assinmentNode.setChild(node2,1)
+        return assinmentNode
 
     # Visit a parse tree produced by CGrammar2Parser#reference.
     def visitReference(self, ctx: CGrammar2Parser.ReferenceContext):
@@ -217,7 +233,9 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
     # Visit a parse tree produced by CGrammar2Parser#variable.
     def visitVariable(self, ctx: CGrammar2Parser.VariableContext):
         # print("visitVariable")
-        return self.findNode(ctx.getText())
+        node = VariableNameNode()
+        node.setName(ctx.getText())
+        return node
 
     # Visit a parse tree produced by CGrammar2Parser#types_specifier.
     def visitTypes_specifier(self, ctx: CGrammar2Parser.Types_specifierContext):

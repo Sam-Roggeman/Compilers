@@ -52,8 +52,9 @@ class AST:
         return s
 
     def replaceConst(self):
-        self._symbol_table.replaceConst()
-        # self._root = self._root.replaceConst()
+        a = self._root.countUsages()
+
+        self._root = self._root.replaceConst()
 
     def optimize(self):
         self.toDot(name="start")

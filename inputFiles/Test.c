@@ -1,5 +1,4 @@
 int a = 5;
-int* naam = &a;
-int** b = &naam;
-a = 3;
-*naam = 6;
+a = 1 + 2;
+float _b = 2.0f;
+char _v2 = 'g';

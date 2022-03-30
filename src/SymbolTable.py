@@ -3,13 +3,12 @@ from Nodes import *
 
 class VariableTable(list):
     def append(self, node: VariableNode):
-        node.setIndex(len(self))
         super(VariableTable, self).append(node)
 
     def reIndex(self):
         index = 0
         for node in self:
-            node.setIndex(index)
+            # node.setIndex(index)
             index += 1
 
 
@@ -23,7 +22,7 @@ class SymbolTable:
         self.variables[node.getName()].append(node)
 
     def getCurrentVar(self, varname):
-        if not varname in self.variables:
+        if varname not in self.variables:
             raise UninitializedException(varname=varname)
 
         return self.variables[varname][len(self.variables[varname]) - 1]

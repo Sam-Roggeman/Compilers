@@ -8,6 +8,15 @@ class AbsNode:
     _metadata: MetaData
     _lvalue = True
 
+    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
+        children = self.getChildren()
+        for index in range(len(children)):
+            lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
+        return lhcounter, rhcounter
+
+    def __str__(self):
+        return self.toString()
+
     def setParent(self, parent):
         self.parent = parent
 
@@ -37,6 +46,7 @@ class AbsNode:
         children = self.getChildren()
         for index in range(len(children)):
             self.setChild(self.getChildren()[index].replaceConst(), index)
+
         return self
 
     def __init__(self, parent=None):
@@ -52,7 +62,7 @@ class AbsNode:
         return []
 
     def toDot(self, dot):
-        dot.node(str(id(self)), self.toString())
+        dot.node(str(id(self)), str(self))
         for child in self.getChildren():
             child.toDot(dot)
             dot.edge(str(id(self)), str(id(child)))
@@ -276,6 +286,7 @@ class ProgramNode(AbsNode):
     children = []
 
     def setChild(self, child: AbsNode, index: int = 0):
+        child.setParent(self)
         self.children[index] = child
 
     def __init__(self):
@@ -381,6 +392,7 @@ class BinOpNode(AbsNode):
     def fold(self):
         self.lhs = self.lhs.fold()
         self.rhs = self.rhs.fold()
+        return self
 
 
 class BinPlusNode(BinOpNode):
@@ -578,22 +590,45 @@ class BinOrNode(BinOpNode):
             return self
 
 
-class VariableNode(AbsNode):
+class VariableNameNode(AbsNode):
     _name: str
-    _index: int = 0
-    _child: TermNode = None
+
+    def setName(self, name: str):
+        self._name = name
+
+    def getName(self):
+        return self._name
+
+    def __str__(self):
+        return self.toString()
+
+    def toString(self):
+        return self.getName()
+
+    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
+        if self.parent.getChildren()[0] == self:
+            if self.getName() not in lhcounter.keys():
+                lhcounter[self.getName()] = 0
+            lhcounter[self.getName()] += 1
+        else:
+            if self.getName() not in rhcounter.keys():
+                rhcounter[self.getName()] = 0
+            rhcounter[self.getName()] += 1
+        return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+
+class VariableNode(VariableNameNode):
     const: bool = False
     _convertfunction = None
 
     def __str__(self):
-        return str(self._child)
+        return super().__str__()
 
     def replaceConst(self):
-        self._child.replaceConst()
-        if self.const:
-            return self._child
-        else:
-            return self
+        # self._child.replaceConst()
+        # if self.const:
+        #     return self._child
+        # else:
+        return self
 
     def makeConst(self):
         self.const = True
@@ -601,43 +636,23 @@ class VariableNode(AbsNode):
     def copy(self):
         return copy.deepcopy(self)
 
-    def setIndex(self, index: int):
-        self._index = index
-
-    def convertNode(self):
-        nchild = self._convertfunction(self._child)
+    # def convertNode(self):
+        # nchild = self._convertfunction(self._child)
         # nchild.addMetaData(self._child.getMetaData())
-        return self.setChild(nchild)
-
-    def setChild(self, child: TermNode, index: int = 0):
-        if not self.const:
-            self._child = self._convertfunction(child)
-        else:
-            raise ConstException(varname=self._name, metadata=child._metadata)
-
-    def getChildren(self):
-        return [self._child]
+        # return self.setChild(nchild)
 
     def fold(self):
-        self._child = self._child.fold()
         return self
 
-    def setName(self, name: str):
-        self._name = name
-
-    def __init__(self, child: TermNode):
+    def __init__(self):
         super().__init__()
-        self._child = child
-        self._convertfunction = self._child.convertNode
-
-    def getName(self):
-        return self._name
+        # self._convertfunction = self._child.convertNode
 
     def toString(self):
         string = ""
         if self.const:
             string += "const "
-        string += self.getType() + " " + self.getName() + str(self._index)
+        string += self.getType() + " " + self.getName()
         return string
 
     def getValue(self):
@@ -667,30 +682,24 @@ class PrintfNode(FunctionNode):
 
 
 class VariableIntNode(VariableNode):
-    def __init__(self, child: TermIntNode = None):
-        if not child:
-            child = TermIntNode()
-        super().__init__(child=child)
+    def __init__(self):
+        super().__init__()
 
     def getType(self):
         return "int"
 
 
 class VariableFloatNode(VariableNode):
-    def __init__(self, child: TermFloatNode = None):
-        if not child:
-            child = TermFloatNode()
-        super().__init__(child)
+    def __init__(self):
+        super().__init__()
 
     def getType(self):
         return "float"
 
 
 class VariableCharNode(VariableNode):
-    def __init__(self, child: TermCharNode = TermCharNode()):
-        if not child:
-            child = TermCharNode()
-        super().__init__(child)
+    def __init__(self):
+        super().__init__()
 
     def getType(self):
         return "char"
@@ -704,6 +713,17 @@ class RefNode(AbsNode):
 
     def __init__(self):
         super().__init__()
+
+
+class AssNode(BinOpNode):
+    def __init__(self):
+        super().__init__()
+
+    def toString(self):
+        return "="
+
+    def __str__(self):
+        return "="
 
 
 class PointerNode(VariableNode):
