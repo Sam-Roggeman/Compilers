@@ -280,5 +280,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             s = s.deRef()
         return s
 
+    def getSymbolTable(self):
+        return self._symbol_table
 
 del CGrammar2Parser

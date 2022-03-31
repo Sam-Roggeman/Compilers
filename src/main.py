@@ -21,7 +21,8 @@ def main(argv):
     parser = CGrammar2Parser(stream)
     tree = parser.startRule()
     visitor = CGrammar2VisitorImplementation()
-    a = AST(root=visitor.visitStartRule(ctx=tree),name=name)
+    a = AST(root=visitor.visitStartRule(ctx=tree),name=name,symbol_table= visitor.getSymbolTable())
+
     # a = AST(tree=tree, name=name)
     print("#PreOrder before optimize")
     print(a.preOrderTraversal(oneline=True))

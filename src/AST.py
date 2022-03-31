@@ -11,9 +11,11 @@ class AST:
     _last_entered_treenode = None
     _symbol_table: SymbolTable = SymbolTable()
 
-    def __init__(self, root: ProgramNode, name):
+    def __init__(self, root: ProgramNode, name, symbol_table):
         self._name = name
         self._root = root
+        self._symbol_table = symbol_table
+
 
     # def __init__(self, tree, name=None):
     #     self._name = name
@@ -50,16 +52,32 @@ class AST:
         for i in range(0, deref_count):
             s = s.deRef()
         return s
+    def replaceConst(self,curr_node):
 
-    def replaceConst(self):
-        a = self._root.countUsages()
 
-        self._root = self._root.replaceConst()
+        children = curr_node.getChildren()
+        for index in range(len(children)):
+            self.replaceConst(children[curr_node])
+
+    def checkUsage(self):
+        lhs, rhs = self._root.countUsages()
+        for keys in lhs.keys():
+            if rhs[keys] != 0 and lhs[keys] == 0:
+                pass
+            elif lhs[keys] != 0 and rhs[keys] == 0:
+                self._symbol_table.getVar(keys).unUsed()
+            elif lhs[keys] == 1 and rhs[keys] != 0:
+                self._symbol_table.makeConst(keys)
+            self._symbol_table.getVariables(keys).setcounters(lhs,rhs)
+        # self._root.removeUnUsed()
 
     def optimize(self):
         self.toDot(name="start")
-        self.replaceConst()
-        self._symbol_table.reIndex()
+
+        self.checkUsage()
+        removeUnUsed(self.getRoot(),self.getSymbolTable(()))
+        ASTConstVisitor(self.getRoot(),self.getSymbolTable(()))
+        # self._symbol_table.reIndex()
         # self.toDot(name="after_const")
         self.fold()
         self.toDot(name="end")

@@ -3,7 +3,8 @@ import sys
 from Errors import *
 
 
-class AbsNode:
+
+class AbsNode():
     parent = None
     _metadata: MetaData
     _lvalue = True
@@ -11,6 +12,8 @@ class AbsNode:
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
         children = self.getChildren()
         for index in range(len(children)):
+            if index == 2:
+                a = 5
             lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
         return lhcounter, rhcounter
 
@@ -19,6 +22,18 @@ class AbsNode:
 
     def setParent(self, parent):
         self.parent = parent
+
+    def removeChild(self,index):
+        pass
+
+    def removeUnUsed(self):
+        children = self.getChildren()
+        for index in range(len(children)-1,0,-1):
+            if children[index].checkUnUsed():
+                self.removeChild(index)
+
+    def checkUnUsed(self):
+        return False
 
     def getLeftMostChild(self):
         children = self.getChildren()
@@ -43,11 +58,7 @@ class AbsNode:
         pass
 
     def replaceConst(self):
-        children = self.getChildren()
-        for index in range(len(children)):
-            self.setChild(self.getChildren()[index].replaceConst(), index)
-
-        return self
+        return False
 
     def __init__(self, parent=None):
         self.parent = parent
@@ -298,6 +309,9 @@ class ProgramNode(AbsNode):
 
     def getChildren(self):
         return self.children
+
+    def removeChild(self,index):
+        self.children.pop(index)
 
     def toString(self):
         return "Program"
@@ -604,39 +618,48 @@ class VariableNameNode(AbsNode):
     def __str__(self):
         return self.toString()
 
+
     def toString(self):
         return self.getName()
 
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
-        if self.parent.getChildren()[0] == self:
-            if self.getName() not in lhcounter.keys():
-                lhcounter[self.getName()] = 0
+        if self.getName() not in lhcounter.keys():
+            lhcounter[self.getName()] = 0
+        if self.getName() not in rhcounter.keys():
+            rhcounter[self.getName()] = 0
+
+        node = self
+        while not isinstance(node.parent, AssNode):
+            node = node.parent
+
+        if node.parent.getChildren()[0] == node:
             lhcounter[self.getName()] += 1
         else:
-            if self.getName() not in rhcounter.keys():
-                rhcounter[self.getName()] = 0
             rhcounter[self.getName()] += 1
         return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
 
 class VariableNode(VariableNameNode):
     const: bool = False
+    no_use: bool = False
     _convertfunction = None
 
     def __str__(self):
         return super().__str__()
 
-    def replaceConst(self):
-        # self._child.replaceConst()
-        # if self.const:
-        #     return self._child
-        # else:
-        return self
-
     def makeConst(self):
         self.const = True
 
+    def isConst(self):
+        return self.const
+
     def copy(self):
         return copy.deepcopy(self)
+
+    def unUsed(self):
+        self.no_use = True
+
+    def isUnUsed(self):
+        return self.no_use
 
     # def convertNode(self):
         # nchild = self._convertfunction(self._child)
@@ -719,11 +742,24 @@ class RefNode(AbsNode):
 
 
 class AssNode(BinOpNode):
+
+    lhs: VariableNode
+
     def __init__(self):
         super().__init__()
 
     def toString(self):
         return "="
+
+    def checkUnUsed(self):
+        return self.lhs.isUnUsed()
+
+    def replaceConst(self):
+        if self.lhs.isConst():
+            return self.rhs
+
+        else:
+            return self
 
     def __str__(self):
         return "="
