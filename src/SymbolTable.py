@@ -23,13 +23,15 @@ class VariableEntry(object):
         return self.node.isConst()
 
 class SymbolTable:
-    #dict[str, VariableTable]
+    #dict[str, VariableEntry]
     variables = dict()
+    def getValue(self, varname):
+        return self.variables[varname].value
 
     def append(self, node: VariableNode):
         if not node.getName() in self.variables:
-            self.variables[node.getName()] = VariableTable()
-        self.variables[node.getName()].append(node)
+            self.variables[node.getName()] = VariableEntry()
+        self.variables[node.getName()].node = node
 
 
     def getVar(self, varname):
@@ -50,9 +52,7 @@ class SymbolTable:
         return self.variables[keys]
 
     def removeVar(self, varnode:VariableNode):
-        for node in self.variables[varnode.getName()]:
-            if node == varnode:
-                self.variables[varnode.getName()].remove(node)
+        self.variables.pop(varnode.getName())
 
     def makeConst(self, key):
             self.variables[key].node.makeConst()

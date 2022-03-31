@@ -5,6 +5,7 @@ from g4_files.CGrammar2Lexer import CGrammar2Lexer
 from g4_files.CGrammar2Parser import CGrammar2Parser
 from CSTVisitor import CGrammar2VisitorImplementation
 from AST import *
+from ASTVisitor import *
 
 
 def main(argv):

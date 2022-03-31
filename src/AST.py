@@ -1,6 +1,6 @@
 import graphviz
 from SymbolTable import *
-
+from ASTVisitor import *
 
 class AST:
     # todo parent
@@ -81,3 +81,9 @@ class AST:
         # self.toDot(name="after_const")
         self.fold()
         self.toDot(name="end")
+
+    def getRoot(self):
+        return self._root
+
+    def getSymbolTable(self, param):
+        return self._symbol_table

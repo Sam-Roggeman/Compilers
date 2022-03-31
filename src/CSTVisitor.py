@@ -115,7 +115,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         elif ctx.REF():
             node2 = RefNode()
             node2.setChild(self.visit(ctx.variable())[1])
-
+        self._symbol_table.setValue(name,node2)
         assinmentNode = AssNode()
         assinmentNode.setChild(node1,0)
         assinmentNode.setChild(node2,1)
