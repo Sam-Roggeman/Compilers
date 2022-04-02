@@ -8,13 +8,13 @@ class AbsNode():
     parent = None
     _metadata: MetaData
     _lvalue = True
+    _name = None
 
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
         children = self.getChildren()
         for index in range(len(children)):
-            if index == 2:
-                a = 5
-            lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
+            if self._name:
+                lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
         return lhcounter, rhcounter
 
     def __str__(self):
@@ -102,6 +102,9 @@ class TermNode(AbsNode):
     _lvalue = False
     value = None
 
+    def checkParent(self,parent):
+        if not self.parent:
+            self.setParent(parent)
     def __str__(self):
         return str(self.value)
 
@@ -296,6 +299,9 @@ class TermCharNode(TermNode):
 class ProgramNode(AbsNode):
     children = []
 
+    def checkParent(self):
+        for c in self.getChildren():
+            c.checkParent(self)
     def setChild(self, child: AbsNode, index: int = 0):
         child.setParent(self)
         self.children[index] = child
@@ -324,6 +330,10 @@ class ProgramNode(AbsNode):
 class UnOpNode(AbsNode):
     rhs = None
 
+    def checkParent(self,parent):
+        self.setParent(parent)
+        for c in self.getChildren():
+            c.checkParent(self)
     def setChild(self, child, index: int = 0):
         if index == 0:
             self.rhs = child
@@ -385,6 +395,10 @@ class BinOpNode(AbsNode):
     lhs: TermNode
     rhs: TermNode
 
+    def checkParent(self,parent):
+        self.setParent(parent)
+        for c in self.getChildren():
+            c.checkParent(self)
     def setChild(self, child, index: int = 0):
         if index == 0:
             self.lhs = child
@@ -607,7 +621,10 @@ class BinOrNode(BinOpNode):
 
 
 class VariableNameNode(AbsNode):
-    _name: str
+    _name: str = None
+
+    def checkParent(self,parent):
+        self.setParent(parent)
 
     def setName(self, name: str):
         self._name = name
@@ -677,7 +694,10 @@ class VariableNode(VariableNameNode):
         string = ""
         if self.const:
             string += "const "
-        string += self.getType() + " " + self.getName()
+        if self._name:
+            string += self.getType() + " " + self.getName()
+        else:
+            string += self.getType()
         return string
 
     def getValue(self):
@@ -715,6 +735,7 @@ class VariableIntNode(VariableNode):
 
 
 class VariableFloatNode(VariableNode):
+
     def __init__(self):
         super().__init__()
 
@@ -722,17 +743,43 @@ class VariableFloatNode(VariableNode):
         return "float"
 
 
+
 class VariableCharNode(VariableNode):
+
     def __init__(self):
         super().__init__()
 
     def getType(self):
         return "char"
 
-
 class RefNode(AbsNode):
     child: VariableNode
 
+    def checkParent(self,parent):
+        self.setParent(parent)
+        self.child.setParent(self)
+
+    def toString(self):
+        return "&"
+
+    def toDot(self, dot):
+        dot.node(str(id(self)), str(self))
+        self.child.toDot(dot)
+        dot.edge(str(id(self)), str(id(self.child)))
+        return dot
+    def preOrderTraversal(self, string: str, oneline=True, indent=0):
+        if oneline:
+            string += self.toString() + ","
+            c = self.getChildren()
+            string += self.child.getName() + ","
+        else:
+            for i in range(0, indent):
+                string += '\t'
+            string += self.toString()
+            string += '\n'
+            for child in self.getChildren():
+                string = child.preOrderTraversal(string, oneline, indent + 1)
+        return string
     def setChild(self, child, index: int = 0):
         self.child = child
         self.child.setParent(self)
@@ -767,13 +814,23 @@ class AssNode(BinOpNode):
 
 class PointerNode(VariableNode):
     point_to_type: type
+    _name = None
 
+
+    def checkParent(self,parent):
+        self.setParent(parent)
+        for c in self.getChildren():
+            c.checkParent(self)
     def __init__(self, child: TermNode or VariableNode):
-        super().__init__(child)
+        super().__init__()
         self.point_to_type = type(child)
+        self._child = child
 
     def toString(self):
-        return self._name + "*"
+        if not self._name:
+            return "*"
+        else:
+            return self._name + "*"
 
     def deRef(self):
         return self._child

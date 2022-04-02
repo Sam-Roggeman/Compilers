@@ -37,7 +37,7 @@ class AST:
 
     def preOrderTraversal(self, oneline=True):
         string = ""
-        string = self._root.preOrderTraversal(string, oneline)[:-1]
+        string = self._root.preOrderTraversal(string, oneline)
         return string
 
     def findNode(self, name: str):
@@ -73,7 +73,7 @@ class AST:
 
     def optimize(self):
         self.toDot(name="start")
-
+        self._root.checkParent()
         self.checkUsage()
         removeUnUsed(self.getRoot(),self.getSymbolTable(()))
         ASTConstVisitor(self.getRoot(),self.getSymbolTable(()))

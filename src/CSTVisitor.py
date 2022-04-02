@@ -103,6 +103,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             node1 = self.visit(ctx.types_specifier())
         elif ctx.pointertype():
             node1 = self.visit(ctx.pointertype())
+
         name = ctx.variable()[0].getText()
         node1.setName(name)
         self._symbol_table.append(node1)
@@ -114,7 +115,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             node2 = self.visit(ctx.rvalue())
         elif ctx.REF():
             node2 = RefNode()
-            node2.setChild(self.visit(ctx.variable())[1])
+            node2.setChild(self.visit(ctx.variable(1)))
         self._symbol_table.setValue(name,node2)
         assinmentNode = AssNode()
         assinmentNode.setChild(node1,0)
