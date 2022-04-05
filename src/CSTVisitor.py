@@ -113,6 +113,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         # Node2
         if ctx.rvalue():
             node2 = self.visit(ctx.rvalue())
+            for c in node2.getChildren():
+                c.setRvalue()
             node2.setRvalue()
         elif ctx.REF():
             node2 = RefNode()
