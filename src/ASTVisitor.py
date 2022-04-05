@@ -1,5 +1,6 @@
 from SymbolTable import *
 from Nodes import *
+from copy import deepcopy
 
 
 class AbsASTVisitor:
@@ -94,16 +95,18 @@ class ASTConstVisitor(AbsASTVisitor):
         return self.default(ctx)
 
     def visitVariableNameNode(self, ctx):
-        if self._symbol_table.getConst(ctx.getName()):
-            return self._symbol_table.getValue(ctx.getName())
+        node = self._symbol_table.getVar(ctx.getName())
+        if ctx.isRvalue() and not ctx.isReferenced() and node.isConst():
+            return copy.deepcopy(self._symbol_table.getValue(ctx.getName()))
         else:
-            return self
+            return ctx
 
     def visitVariableNode(self, ctx):
-        if ctx.isConst():
-            return self._symbol_table.getValue(ctx.getName())
+        node = self._symbol_table.getVar(ctx.getName())
+        if ctx.isRvalue() and ctx.isReferenced() == False and node.isConst():
+            return copy.deepcopy(self._symbol_table.getValue(ctx.getName()))
         else:
-            return self
+            return ctx
 
     def visitFunctionNode(self, ctx):
         return self.default(ctx)
@@ -119,6 +122,7 @@ class ASTConstVisitor(AbsASTVisitor):
 
     def visitPointerNode(self, ctx):
         return self.default(ctx)
+
 
 
 class removeUnUsed(AbsASTVisitor):

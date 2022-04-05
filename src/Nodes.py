@@ -8,7 +8,13 @@ class AbsNode():
     parent = None
     _metadata: MetaData
     _lvalue = True
+    rvalue = False
 
+    def setRvalue(self):
+        self.rvalue = True
+
+    def isRvalue(self):
+        return self.rvalue
 
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
         children = self.getChildren()
@@ -621,6 +627,14 @@ class BinOrNode(BinOpNode):
 
 class VariableNameNode(AbsNode):
     _name: str = None
+    referenced = False
+
+
+    def setReferenced(self):
+        self.referenced = True
+
+    def isReferenced(self):
+        return self.referenced
 
     def checkParent(self,parent):
         self.setParent(parent)
@@ -660,6 +674,7 @@ class VariableNode(VariableNameNode):
     no_use: bool = False
     _convertfunction = None
 
+
     def __str__(self):
         return super().__str__()
 
@@ -668,6 +683,8 @@ class VariableNode(VariableNameNode):
 
     def isConst(self):
         return self.const
+
+
 
     def copy(self):
         return copy.deepcopy(self)

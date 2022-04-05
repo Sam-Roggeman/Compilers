@@ -64,8 +64,8 @@ class AST:
         for keys in lhs.keys():
             if rhs[keys] != 0 and lhs[keys] == 0:
                 pass
-            elif lhs[keys] != 0 and rhs[keys] == 0:
-                self._symbol_table.getVar(keys).unUsed()
+            # elif lhs[keys] != 0 and rhs[keys] == 0:
+            #     self._symbol_table.getVar(keys).unUsed()
             elif lhs[keys] == 1 and rhs[keys] != 0:
                 self._symbol_table.makeConst(keys)
             self._symbol_table.getVariables(keys).setcounters(lhs,rhs)
@@ -75,7 +75,7 @@ class AST:
         self.toDot(name="start")
         self._root.checkParent()
         self.checkUsage()
-        removeUnUsed(self.getRoot(),self.getSymbolTable(()))
+        # removeUnUsed(self.getRoot(),self.getSymbolTable(()))
         ASTConstVisitor(self.getRoot(),self.getSymbolTable(()))
         # self._symbol_table.reIndex()
         # self.toDot(name="after_const")

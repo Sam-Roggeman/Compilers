@@ -113,9 +113,15 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         # Node2
         if ctx.rvalue():
             node2 = self.visit(ctx.rvalue())
+            node2.setRvalue()
         elif ctx.REF():
             node2 = RefNode()
-            node2.setChild(self.visit(ctx.variable(1)))
+            child = self.visit(ctx.variable(1))
+            child.setReferenced()
+            child.setRvalue()
+            node2.setChild(child)
+            node2.setRvalue()
+
         self._symbol_table.setValue(name,node2)
         assinmentNode = AssNode()
         assinmentNode.setChild(node1,0)
