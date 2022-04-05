@@ -8,13 +8,12 @@ class AbsNode():
     parent = None
     _metadata: MetaData
     _lvalue = True
-    _name = None
+
 
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
         children = self.getChildren()
         for index in range(len(children)):
-            if self._name:
-                lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
+            lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
         return lhcounter, rhcounter
 
     def __str__(self):
@@ -640,19 +639,20 @@ class VariableNameNode(AbsNode):
         return self.getName()
 
     def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
-        if self.getName() not in lhcounter.keys():
-            lhcounter[self.getName()] = 0
-        if self.getName() not in rhcounter.keys():
-            rhcounter[self.getName()] = 0
+        if self._name:
+            if self.getName() not in lhcounter.keys():
+                lhcounter[self.getName()] = 0
+            if self.getName() not in rhcounter.keys():
+                rhcounter[self.getName()] = 0
 
-        node = self
-        while not isinstance(node.parent, AssNode):
-            node = node.parent
+            node = self
+            while not isinstance(node.parent, AssNode):
+                node = node.parent
 
-        if node.parent.getChildren()[0] == node:
-            lhcounter[self.getName()] += 1
-        else:
-            rhcounter[self.getName()] += 1
+            if node.parent.getChildren()[0] == node:
+                lhcounter[self.getName()] += 1
+            else:
+                rhcounter[self.getName()] += 1
         return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
 
 class VariableNode(VariableNameNode):
@@ -754,6 +754,9 @@ class VariableCharNode(VariableNode):
 
 class RefNode(AbsNode):
     child: VariableNode
+
+    def getChildren(self):
+        return [self.child]
 
     def checkParent(self,parent):
         self.setParent(parent)
