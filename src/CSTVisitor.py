@@ -13,13 +13,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
     # Visit a parse tree produced by CGrammar2Parser#startRule.
     def visitStartRule(self, ctx: CGrammar2Parser.StartRuleContext):
         # print("visitStartRule")
-        program_node = ProgramNode()
-        for c in ctx.getChildren():
-            astchild = self.visit(c)
-            if astchild:
-                program_node.addchild(astchild)
-
-        return program_node
+        return self.visit(ctx.file())
 
     # Visit a parse tree produced by CGrammar2Parser#expr.
     def visitExpr(self, ctx: CGrammar2Parser.ExprContext):
@@ -276,6 +270,61 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         # print("visitPrintf")
         return self.visitChildren(ctx)
 
+    def visitFile(self, ctx:CGrammar2Parser.FileContext):
+        node1 = CodeblockNode()
+        for c in ctx.getChildren():
+            print(c.getText())
+            astchild = self.visit(c)
+            if astchild:
+                node1.addchild(astchild)
+
+        return node1
+
+    def visitStatement(self, ctx:CGrammar2Parser.StatementContext):
+        node1 = StatementNode()
+        for c in ctx.getChildren():
+            astchild = self.visit(c)
+            if astchild:
+                node1.addChild(astchild)
+
+        return node1
+
+    def visitIfstatement(self, ctx:CGrammar2Parser.IfstatementContext):
+        condition = ConditionNode()
+        child = self.visit(ctx.expr())
+        condition.addChild(child)
+        codeblock = self.visit(ctx.file())
+        node = IfstatementNode()
+        node.setCondition(condition)
+        node.setBlock(codeblock)
+        return node
+
+    def visitElsestatement(self, ctx:CGrammar2Parser.ElsestatementContext):
+        codeblock = self.visit(ctx.file())
+        node = ElsestatementNode()
+        node.setBlock(codeblock)
+        return node
+
+    def visitWhilestatement(self, ctx:CGrammar2Parser.WhilestatementContext):
+        condition = ConditionNode()
+        child = self.visit(ctx.expr())
+        condition.addChild(child)
+        codeblock = self.visit(ctx.file())
+        node = WhilestatementNode()
+        node.setCondition(condition)
+        node.setBlock(codeblock)
+        return node
+
+    def visitForstatement(self, ctx:CGrammar2Parser.ForstatementContext):
+        condition = ForstatementNode
+        for c in self.visit(ctx.expr()):
+            condition.addChild(c)
+        codeblock = self.visit(ctx.file())
+        node = WhilestatementNode()
+        node.setCondition(condition)
+        node.setBlock(codeblock)
+        return node
+
     def findNode(self, name: str):
         deref_count = 0
         for c in name:
@@ -291,5 +340,6 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
 
     def getSymbolTable(self):
         return self._symbol_table
+
 
 del CGrammar2Parser
