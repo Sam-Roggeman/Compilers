@@ -316,11 +316,13 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         return node
 
     def visitForstatement(self, ctx:CGrammar2Parser.ForstatementContext):
-        condition = ForstatementNode
-        for c in self.visit(ctx.expr()):
-            condition.addChild(c)
+        condition = ConditionNode()
+        expressions = ctx.expr()
+        for c in range(len(expressions)):
+            expr = self.visit(ctx.expr(c))
+            condition.addChild(expr)
         codeblock = self.visit(ctx.file())
-        node = WhilestatementNode()
+        node = ForstatementNode()
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
@@ -333,7 +335,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             else:
                 break
         name = name[deref_count:]
-        s = self._symbol_table.getCurrentVar(varname=name)
+        s = self._symbol_table.getVar(varname=name)
         for i in range(0, deref_count):
             s = s.deRef()
         return s

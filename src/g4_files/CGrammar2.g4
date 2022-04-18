@@ -28,7 +28,7 @@ statement
 rvalue: mathExpr| variable ;
 function: printf;
 
-ifstatement: IF LBR expr  RBR LCBR file RCBR;
+ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
 elsestatement: ELSE LCBR file RCBR;
 whilestatement: WHILE LBR expr RBR LCBR file RCBR;
 forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR file RCBR;
@@ -122,7 +122,8 @@ WHILE: 'while';
 FOR: 'for';
 BREAK: 'break';
 CONTINUE: 'continue';
-
+RETURN: 'return';
+VOID: 'void';
 //semicolon
 SEMICOL: ';';
 

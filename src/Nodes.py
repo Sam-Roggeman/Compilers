@@ -976,7 +976,6 @@ class ConditionNode(AbsNode):
 
     def addChild(self,child):
         child.setParent(self)
-        self.children = []
         self.children.append(child)
 
     def checkParent(self,parent):
@@ -984,5 +983,10 @@ class ConditionNode(AbsNode):
         for c in self.getChildren():
             c.checkParent(self)
 
-# class BreakNode():
-# class ContinueNode():
+class BreakNode(TermNode):
+    def __init__(self):
+        super().__init__("break")
+
+class ContinueNode(TermNode):
+    def __init__(self):
+        super().__init__("continue")

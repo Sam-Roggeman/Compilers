@@ -1,6 +1,4 @@
 from Nodes import *
-
-
 class VariableEntry(object):
     const: bool = False
     type: type
@@ -25,6 +23,10 @@ class VariableEntry(object):
 class SymbolTable:
     #dict[str, VariableEntry]
     variables = dict()
+
+    def __init__(self):
+        self.children = []
+
     def getValue(self, varname):
         return self.variables[varname].value
 
