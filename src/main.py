@@ -1,9 +1,9 @@
 import sys
 from antlr4 import *
 
-from g4_files.CGrammar2Lexer import CGrammar2Lexer
-from g4_files.CGrammar2Parser import CGrammar2Parser
-from CSTVisitor import CGrammar2VisitorImplementation
+from g4_files.CGrammarLexer import CGrammarLexer
+from g4_files.CGrammarParser import CGrammarParser
+from CSTVisitor import CGrammarVisitorImplementation
 from AST import *
 from ASTVisitor import *
 
@@ -17,11 +17,11 @@ def main(argv):
         name = name[13:-2]
 
     input_stream = FileStream(inputlocation)
-    lexer = CGrammar2Lexer(input_stream)
+    lexer = CGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
-    parser = CGrammar2Parser(stream)
+    parser = CGrammarParser(stream)
     tree = parser.startRule()
-    visitor = CGrammar2VisitorImplementation()
+    visitor = CGrammarVisitorImplementation()
     a = AST(root=visitor.visitStartRule(ctx=tree),name=name,symbol_table= visitor.getSymbolTable())
 
     print("#PreOrder before optimize")

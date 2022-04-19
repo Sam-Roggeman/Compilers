@@ -1,27 +1,27 @@
-# Generated from ./src/g4_files/CGrammar2.g4 by ANTLR 4.9.3
-from g4_files.CGrammar2Parser import CGrammar2Parser
-from g4_files.CGrammar2Visitor import CGrammar2Visitor
+# Generated from ./src/g4_files/CGrammar.g4 by ANTLR 4.9.3
+from g4_files.CGrammarParser import CGrammarParser
+from g4_files.CGrammarVisitor import CGrammarVisitor
 from Nodes import *
 from SymbolTable import *
 
 
-# This class defines a complete generic visitor for a parse tree produced by CGrammar2Parser.
+# This class defines a complete generic visitor for a parse tree produced by CGrammarParser.
 
-class CGrammar2VisitorImplementation(CGrammar2Visitor):
+class CGrammarVisitorImplementation(CGrammarVisitor):
     _symbol_table: SymbolTable = SymbolTable()
 
-    # Visit a parse tree produced by CGrammar2Parser#startRule.
-    def visitStartRule(self, ctx: CGrammar2Parser.StartRuleContext):
+    # Visit a parse tree produced by CGrammarParser#startRule.
+    def visitStartRule(self, ctx: CGrammarParser.StartRuleContext):
         # print("visitStartRule")
         return self.visit(ctx.file())
 
-    # Visit a parse tree produced by CGrammar2Parser#expr.
-    def visitExpr(self, ctx: CGrammar2Parser.ExprContext):
+    # Visit a parse tree produced by CGrammarParser#expr.
+    def visitExpr(self, ctx: CGrammarParser.ExprContext):
         # print("visitExpr")
         return self.visit(ctx.getChild(0))
 
-    # Visit a parse tree produced by CGrammar2Parser#mathExpr.
-    def visitMathExpr(self, ctx: CGrammar2Parser.MathExprContext):
+    # Visit a parse tree produced by CGrammarParser#mathExpr.
+    def visitMathExpr(self, ctx: CGrammarParser.MathExprContext):
         # print("visitMathExpr")
         count = ctx.getChildCount()
         if count == 1:
@@ -60,25 +60,25 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         else:
             raise ValueError("Unknown Node")
 
-    # Visit a parse tree produced by CGrammar2Parser#rvalue.
-    def visitRvalue(self, ctx: CGrammar2Parser.RvalueContext):
+    # Visit a parse tree produced by CGrammarParser#rvalue.
+    def visitRvalue(self, ctx: CGrammarParser.RvalueContext):
         if ctx.variable():
             return self.visit(ctx.variable())
         elif ctx.mathExpr():
             return self.visit(ctx.mathExpr())
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#binOp.
-    # def visitBinOp(self, ctx: CGrammar2Parser.BinOpContext):
+    # Visit a parse tree produced by CGrammarParser#binOp.
+    # def visitBinOp(self, ctx: CGrammarParser.BinOpContext):
 
     # return self.visit(ctx.getChild(0))
 
-    # Visit a parse tree produced by CGrammar2Parser#function.
-    def visitFunction(self, ctx: CGrammar2Parser.FunctionContext):
+    # Visit a parse tree produced by CGrammarParser#function.
+    def visitFunction(self, ctx: CGrammarParser.FunctionContext):
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#declaration.
-    def visitDeclaration(self, ctx: CGrammar2Parser.DeclarationContext):
+    # Visit a parse tree produced by CGrammarParser#declaration.
+    def visitDeclaration(self, ctx: CGrammarParser.DeclarationContext):
         node = self.visit(ctx.types_specifier())
         name = ctx.variable().getText()
         node.setName(name)
@@ -87,8 +87,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             node.makeConst()
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#declaration_assignment.
-    def visitDeclaration_assignment(self, ctx: CGrammar2Parser.Declaration_assignmentContext):
+    # Visit a parse tree produced by CGrammarParser#declaration_assignment.
+    def visitDeclaration_assignment(self, ctx: CGrammarParser.Declaration_assignmentContext):
         node1 = None
         node2 = None
 
@@ -124,8 +124,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         assinmentNode.setChild(node2,1)
         return assinmentNode
 
-    # Visit a parse tree produced by CGrammar2Parser#assignment.
-    def visitAssignment(self, ctx: CGrammar2Parser.AssignmentContext):
+    # Visit a parse tree produced by CGrammarParser#assignment.
+    def visitAssignment(self, ctx: CGrammarParser.AssignmentContext):
         node1 = None
         node2 = None
         # todo error report
@@ -139,12 +139,12 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         assinmentNode.setChild(node2,1)
         return assinmentNode
 
-    # Visit a parse tree produced by CGrammar2Parser#reference.
-    def visitReference(self, ctx: CGrammar2Parser.ReferenceContext):
+    # Visit a parse tree produced by CGrammarParser#reference.
+    def visitReference(self, ctx: CGrammarParser.ReferenceContext):
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#poinervariable.
-    def visitPointertype(self, ctx: CGrammar2Parser.PointertypeContext):
+    # Visit a parse tree produced by CGrammarParser#poinervariable.
+    def visitPointertype(self, ctx: CGrammarParser.PointertypeContext):
         # print("visitPoinervariable")
         if ctx.pointertype():
             a = PointerNode(self.visit(ctx.pointertype()))
@@ -154,13 +154,13 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
             a = PointerNode(self.visit(ctx.types_specifier()))
             return a
 
-    # Visit a parse tree produced by CGrammar2Parser#dereffedvariable.
-    def visitDereffedvariable(self, ctx: CGrammar2Parser.DereffedvariableContext):
+    # Visit a parse tree produced by CGrammarParser#dereffedvariable.
+    def visitDereffedvariable(self, ctx: CGrammarParser.DereffedvariableContext):
         # print("visitDereffedvariable")
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#binOpPrio1.
-    def visitBinOpPrio1(self, ctx: CGrammar2Parser.BinOpPrio1Context):
+    # Visit a parse tree produced by CGrammarParser#binOpPrio1.
+    def visitBinOpPrio1(self, ctx: CGrammarParser.BinOpPrio1Context):
         # print("visitBinOpPrio1")
         if ctx.PLUS():
             return BinPlusNode()
@@ -169,8 +169,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         else:
             raise ValueError("Unknown Node")
 
-    # Visit a parse tree produced by CGrammar2Parser#binOpPrio2.
-    def visitBinOpPrio2(self, ctx: CGrammar2Parser.BinOpPrio2Context):
+    # Visit a parse tree produced by CGrammarParser#binOpPrio2.
+    def visitBinOpPrio2(self, ctx: CGrammarParser.BinOpPrio2Context):
         # print("visitBinOpPrio2")
         if ctx.DIS():
             return BinDisNode()
@@ -181,8 +181,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         else:
             raise ValueError("Unknown Node")
 
-    # Visit a parse tree produced by CGrammar2Parser#unOp.
-    def visitUnOp(self, ctx: CGrammar2Parser.UnOpContext):
+    # Visit a parse tree produced by CGrammarParser#unOp.
+    def visitUnOp(self, ctx: CGrammarParser.UnOpContext):
         # print("visitUnOp")
         if ctx.MIN():
             return UnMinNode()
@@ -191,16 +191,16 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         elif ctx.NOT():
             return UnNotNode()
 
-    # Visit a parse tree produced by CGrammar2Parser#logOp.
-    def visitLogOp(self, ctx: CGrammar2Parser.LogOpContext):
+    # Visit a parse tree produced by CGrammarParser#logOp.
+    def visitLogOp(self, ctx: CGrammarParser.LogOpContext):
         # print("visitLogOp")
         if ctx.AND():
             return BinAndNode()
         elif ctx.OR():
             return BinOrNode()
 
-    # Visit a parse tree produced by CGrammar2Parser#compOp.
-    def visitCompOp(self, ctx: CGrammar2Parser.CompOpContext):
+    # Visit a parse tree produced by CGrammarParser#compOp.
+    def visitCompOp(self, ctx: CGrammarParser.CompOpContext):
         # print("visitCompOp")
 
         if ctx.EQ():
@@ -216,30 +216,30 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         elif ctx.NE():
             return BinNENode()
 
-    # Visit a parse tree produced by CGrammar2Parser#mul.
-    def visitMul(self, ctx: CGrammar2Parser.MulContext):
+    # Visit a parse tree produced by CGrammarParser#mul.
+    def visitMul(self, ctx: CGrammarParser.MulContext):
         # print("visitMul")
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#deref.
-    def visitDeref(self, ctx: CGrammar2Parser.DerefContext):
+    # Visit a parse tree produced by CGrammarParser#deref.
+    def visitDeref(self, ctx: CGrammarParser.DerefContext):
         # print("visitDeref")
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#pointer.
-    def visitPointer(self, ctx: CGrammar2Parser.PointerContext):
+    # Visit a parse tree produced by CGrammarParser#pointer.
+    def visitPointer(self, ctx: CGrammarParser.PointerContext):
         # print("visitPointer")
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#variable.
-    def visitVariable(self, ctx: CGrammar2Parser.VariableContext):
+    # Visit a parse tree produced by CGrammarParser#variable.
+    def visitVariable(self, ctx: CGrammarParser.VariableContext):
         # print("visitVariable")
         node = copy.deepcopy(self._symbol_table.getVar(varname=ctx.getText()))
 
         return node
 
-    # Visit a parse tree produced by CGrammar2Parser#types_specifier.
-    def visitTypes_specifier(self, ctx: CGrammar2Parser.Types_specifierContext):
+    # Visit a parse tree produced by CGrammarParser#types_specifier.
+    def visitTypes_specifier(self, ctx: CGrammarParser.Types_specifierContext):
         # print("visitTypes_specifier")
         if ctx.CHARTYPE():
             return VariableCharNode()
@@ -248,8 +248,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         elif ctx.INTTYPE():
             return VariableIntNode()
 
-    # Visit a parse tree produced by CGrammar2Parser#literal.
-    def visitLiteral(self, ctx: CGrammar2Parser.LiteralContext):
+    # Visit a parse tree produced by CGrammarParser#literal.
+    def visitLiteral(self, ctx: CGrammarParser.LiteralContext):
         # print("visitLiteral")
         if ctx.INTLit():
             return TermIntNode(int(ctx.INTLit().getText()))
@@ -258,17 +258,17 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         elif ctx.CHARLit():
             return TermCharNode(ctx.CHARLit().getText()[1:-1])
 
-    # Visit a parse tree produced by CGrammar2Parser#const_qualifier.
-    def visitConst_qualifier(self, ctx: CGrammar2Parser.Const_qualifierContext):
+    # Visit a parse tree produced by CGrammarParser#const_qualifier.
+    def visitConst_qualifier(self, ctx: CGrammarParser.Const_qualifierContext):
         # print("visitConst_qualifier")
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by CGrammar2Parser#printf.
-    def visitPrintf(self, ctx: CGrammar2Parser.PrintfContext):
+    # Visit a parse tree produced by CGrammarParser#printf.
+    def visitPrintf(self, ctx: CGrammarParser.PrintfContext):
         # print("visitPrintf")
         return self.visitChildren(ctx)
 
-    def visitFile(self, ctx:CGrammar2Parser.FileContext):
+    def visitFile(self, ctx:CGrammarParser.FileContext):
         node1 = CodeblockNode()
         for c in ctx.getChildren():
             print(c.getText())
@@ -278,7 +278,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
 
         return node1
 
-    def visitStatement(self, ctx:CGrammar2Parser.StatementContext):
+    def visitStatement(self, ctx:CGrammarParser.StatementContext):
         node1 = StatementNode()
         for c in ctx.getChildren():
             astchild = self.visit(c)
@@ -287,7 +287,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
 
         return node1
 
-    def visitIfstatement(self, ctx:CGrammar2Parser.IfstatementContext):
+    def visitIfstatement(self, ctx:CGrammarParser.IfstatementContext):
         condition = ConditionNode()
         child = self.visit(ctx.expr())
         condition.addChild(child)
@@ -297,13 +297,13 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         node.setBlock(codeblock)
         return node
 
-    def visitElsestatement(self, ctx:CGrammar2Parser.ElsestatementContext):
+    def visitElsestatement(self, ctx:CGrammarParser.ElsestatementContext):
         codeblock = self.visit(ctx.file())
         node = ElsestatementNode()
         node.setBlock(codeblock)
         return node
 
-    def visitWhilestatement(self, ctx:CGrammar2Parser.WhilestatementContext):
+    def visitWhilestatement(self, ctx:CGrammarParser.WhilestatementContext):
         condition = ConditionNode()
         child = self.visit(ctx.expr())
         condition.addChild(child)
@@ -313,7 +313,7 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         node.setBlock(codeblock)
         return node
 
-    def visitForstatement(self, ctx:CGrammar2Parser.ForstatementContext):
+    def visitForstatement(self, ctx:CGrammarParser.ForstatementContext):
         condition = ConditionNode()
         expressions = ctx.expr()
         for c in range(len(expressions)):
@@ -342,4 +342,4 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         return self._symbol_table
 
 
-del CGrammar2Parser
+del CGrammarParser

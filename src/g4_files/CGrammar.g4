@@ -1,61 +1,114 @@
 grammar CGrammar;
+
 startRule
-    :expr* EOF
+    : file EOF
     ;
 
+file
+    : ((expr SEMICOL) | (statement))*
+    ;
 
 expr
     : mathExpr
-    | printf
-    | type variable
-    | variable ASS expr
-    | (CONST)? type variable ASS expr
-    | REF variable
+    | declaration
+    | assignment
+    | declaration_assignment
+    | reference
     | variable
-    | expr SEMICOL
+    | BREAK
+    | CONTINUE
     ;
 
-variable
-    : MUL variable
-    | VarName
+statement
+    : ifstatement (elsestatement)?
+    | whilestatement
+    | forstatement
     ;
 
+rvalue: mathExpr| variable ;
+function: printf;
 
-mathExpr
-    : (PLUS|MIN|NOT) mathExpr
-    | mathExpr (MUL|DIS|MOD) mathExpr
-    | mathExpr (PLUS | MIN) mathExpr
-    | mathExpr (AND|OR) mathExpr
-    | mathExpr (LT|GT|EQ|LTE|GTE|NE) mathExpr
+ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
+elsestatement: ELSE LCBR file RCBR;
+whilestatement: WHILE LBR expr RBR LCBR file RCBR;
+forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR file RCBR;
+
+declaration: (CONST)? types_specifier variable;
+declaration_assignment
+    : (CONST)? types_specifier variable ASS rvalue
+    | (CONST)? pointertype variable ASS (REF)* variable
+    ;
+assignment
+    : (variable|dereffedvariable) ASS rvalue
+    | (variable|dereffedvariable) ASS (REF)* variable
+    ;
+reference: REF variable;
+
+binOp: binOpPrio2
+    | compOp
+    | logOp
+    | binOpPrio1
+    ;
+
+mathExpr : unOp mathExpr
+    // (/,*,%)
+    | mathExpr binOpPrio2 mathExpr
+    // (+,-)
+    | mathExpr binOpPrio1 mathExpr
+    // (<,>,==,<=,>=,!=)
+    | mathExpr compOp mathExpr
+        // (||,&&)
+    | mathExpr logOp mathExpr
+    // ((,))
     | LBR mathExpr RBR
-    | value
+    | literal
     | variable
     ;
-binOp: PLUS | MIN  |DIS| MUL |MOD;
-unOp: PLUS|MIN;
-logOp: AND|OR;
+pointer: MUL;
+pointertype: (CONST)? types_specifier pointer | pointertype pointer;
+dereffedvariable: deref variable;
+binOpPrio2: DIS| mul |MOD;
+binOpPrio1: PLUS | MIN;
 compOp: LT|GT|EQ|LTE|GTE|NE;
-type: CHARTYPE|FLOATTYPE|INTTYPE| type MUL;
-value: INT|FLOAT|CHAR;
-printf: 'printf' '(' (VarName | value) ')';
+unOp: PLUS|MIN|NOT;
+logOp: AND|OR;
+mul: MUL;
+deref: MUL;
+variable: VarName;
 
 
-INT:'0' | [1-9] [0-9]*;
-FLOAT: [0-9]+[.][0-9]+[f];
-CHAR: ['].['];
+types_specifier: CHARTYPE|FLOATTYPE|INTTYPE;
+literal: INTLit|FLOATLit|CHARLit;
+const_qualifier: CONST;
+printf: 'printf' '(' (variable | literal) ')';
 
 
+//types_specifiers
+CHARTYPE: 'char';
+FLOATTYPE: 'float';
+INTTYPE: 'int';
+
+//literal
+INTLit: '0' | [1-9] [0-9]*;
+FLOATLit: [0-9]+[.][0-9]+[f];
+CHARLit: ['].['];
+
+//const_qualifier
 CONST: 'const';
+
+//binops
+EQ:'==';
 MUL:'*';
 MIN:'-';
-DIS:'/';
 PLUS:'+';
+DIS:'/';
 LT:'<';
 GT:'>';
-EQ:'==';
 ASS:'=';
 LBR: '(';
 RBR: ')';
+LCBR: '{';
+RCBR: '}';
 AND: '&&';
 OR: '||';
 NOT: '!';
@@ -63,13 +116,24 @@ LTE: '<=';
 GTE: '>=';
 NE: '!=';
 MOD: '%';
+IF: 'if';
+ELSE: 'else';
+WHILE: 'while';
+FOR: 'for';
+BREAK: 'break';
+CONTINUE: 'continue';
+RETURN: 'return';
+VOID: 'void';
+//semicolon
 SEMICOL: ';';
-CHARTYPE: 'char';
-FLOATTYPE: 'float';
-INTTYPE: 'int';
-VarName: [A-Za-z_] [A-Za-z_0-9]*;
+
 REF: '&';
 
+VarName: [A-Za-z_] [A-Za-z_0-9]*;
+
+LINE_COMMENT
+  : '//' ~[\r\n]* (EOF|'\r'? '\n') -> channel(HIDDEN)
+  ;
 BlockComment: '/*' .*? '*/' -> skip;
 Comment: '//' ~[\n]* -> skip;
 WS: [ \n\t\r]+ -> skip;
