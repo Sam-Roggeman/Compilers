@@ -20,12 +20,7 @@ def richest(node1: type, node2: type):
     if node1 == TermCharNode or node2 == TermCharNode:
         return TermCharNode
 
-
 class AbsNode:
-    parent = None
-    _metadata: MetaData
-    _lvalue = True
-    rvalue = False
 
     def setRvalue(self):
         self.rvalue = True
@@ -84,6 +79,9 @@ class AbsNode:
 
     def __init__(self, parent=None):
         self.parent = parent
+        self._metadata: MetaData
+        self._lvalue = True
+        self.rvalue = False
 
     def toString(self):
         return ""
@@ -126,8 +124,7 @@ class AbsNode:
 
 
 class TermNode(AbsNode):
-    _lvalue = False
-    value = None
+
 
     def checkParent(self, parent):
         if not self.parent:
@@ -148,6 +145,8 @@ class TermNode(AbsNode):
     def __init__(self, value):
         super().__init__()
         self.value = value
+        self._lvalue = False
+
 
     def __add__(self, other):
         # richest_type = richest(type(self),type(other))
@@ -261,13 +260,6 @@ class TermIntNode(TermNode):
             return nchild
         return child
 
-    def isRicher(self, child: TermNode):
-        if isinstance(child, TermCharNode):
-            return True
-        elif isinstance(child, TermFloatNode):
-            return False
-        elif isinstance(child, TermIntNode):
-            return False
 
 
 class TermFloatNode(TermNode):
@@ -298,14 +290,6 @@ class TermFloatNode(TermNode):
             return nchild
         return child
 
-    def isRicher(self, child: TermNode):
-        if isinstance(child, TermCharNode):
-            return True
-        elif isinstance(child, TermFloatNode):
-            return False
-        elif isinstance(child, TermIntNode):
-            return True
-
 
 class TermCharNode(TermNode):
 
@@ -324,16 +308,7 @@ class TermCharNode(TermNode):
     def fold(self):
         return self
 
-    def isRicher(self, child: TermNode):
-        if isinstance(child, TermCharNode):
-            return False
-        elif isinstance(child, TermFloatNode):
-            return False
-        elif isinstance(child, TermIntNode):
-            return False
-
-    @staticmethod
-    def convertNode(child: TermNode):
+    def convertNode(self, child: TermNode):
         if isinstance(child, TermCharNode):
             return child
         elif isinstance(child, TermFloatNode):
@@ -348,11 +323,10 @@ class TermCharNode(TermNode):
             return nchild
         return child
 
-
-class ProgramNode(AbsNode):
-    children = []
-
-    def checkParent(self):
+class CodeblockNode(AbsNode):
+    def checkParent(self,parent= None):
+        if parent:
+            self.parent = parent
         for c in self.getChildren():
             c.checkParent(self)
 
@@ -362,6 +336,7 @@ class ProgramNode(AbsNode):
 
     def __init__(self):
         super().__init__()
+        self.children = []
 
     def addchild(self, child):
         child.setParent(self)
@@ -374,15 +349,21 @@ class ProgramNode(AbsNode):
         self.children.pop(index)
 
     def toString(self):
-        return "Program"
+        return "Codeblock"
 
     def fold(self):
         for index in range(len(self.children)):
             self.children[index] = self.children[index].fold()
 
+class ProgramNode(CodeblockNode):
+    def __init__(self):
+        super().__init__()
+
+    def toString(self):
+        return "Program"
 
 class UnOpNode(AbsNode):
-    rhs = None
+
 
     def checkParent(self, parent):
         self.setParent(parent)
@@ -399,6 +380,7 @@ class UnOpNode(AbsNode):
 
     def __init__(self):
         super().__init__()
+        self.rhs = None
 
     def fold(self):
         self.rhs = self.rhs.fold()
@@ -482,6 +464,8 @@ class BinOpNode(AbsNode):
 
     def __init__(self):
         super().__init__()
+        self.lhs: TermNode
+        self.rhs: TermNode
 
     def fold(self):
         self.lhs = self.lhs.fold()
@@ -685,8 +669,10 @@ class BinOrNode(BinOpNode):
 
 
 class VariableNameNode(AbsNode):
-    _name: str = None
-    referenced = False
+    def __init__(self):
+        super().__init__()
+        self._name: str = ""
+        self.referenced = False
 
     def setReferenced(self):
         self.referenced = True
@@ -718,9 +704,12 @@ class VariableNameNode(AbsNode):
 
             node = self
             while not isinstance(node.parent, AssNode):
+                if isinstance(node.parent,StatementNode):
+                    break
                 node = node.parent
-
-            if node.parent.getChildren()[0] == node:
+            if isinstance(node.parent,StatementNode):
+                return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+            elif node.parent.getChildren()[0] == node:
                 lhcounter[self.getName()] += 1
             else:
                 rhcounter[self.getName()] += 1
@@ -728,9 +717,6 @@ class VariableNameNode(AbsNode):
 
 
 class VariableNode(VariableNameNode):
-    const: bool = False
-    no_use: bool = False
-    _convertfunction = None
 
     def __str__(self):
         return super().__str__()
@@ -761,6 +747,9 @@ class VariableNode(VariableNameNode):
     def __init__(self):
         super().__init__()
         # self._convertfunction = self._child.convertNode
+        self.const: bool = False
+        self.no_use: bool = False
+        self._convertfunction = None
 
     def toString(self):
         string = ""
@@ -916,6 +905,8 @@ class PointerNode(VariableNode):
     _name = None
 
     def checkParent(self, parent):
+
+    def checkParent(self,parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
@@ -924,6 +915,7 @@ class PointerNode(VariableNode):
         super().__init__()
         self.point_to_type = type(child)
         self._child = child
+        self._name = None
 
     def toString(self):
         if not self._name:
@@ -948,3 +940,114 @@ class PointerNode(VariableNode):
     @staticmethod
     def convertNode(child):
         pass
+
+
+class StatementNode(AbsNode):
+
+
+    def __init__(self):
+        super().__init__()
+        self.block = None
+        self.children = []
+
+    def setBlock(self,block):
+        self.block = block
+    def getChildren(self):
+        return self.children
+
+    def addChild(self,child):
+        self.children.append(child)
+
+    def checkParent(self,parent):
+        self.setParent(parent)
+        for c in self.getChildren():
+            c.checkParent(self)
+
+    def toString(self):
+        return "statement"
+
+class IfstatementNode(StatementNode):
+    condition:AbsNode
+
+    def __init__(self):
+        super().__init__()
+
+
+    def setCondition(self,condition):
+        self.condition = condition
+
+    def getChildren(self):
+        return [self.condition,self.block]
+
+    def toString(self):
+        return "if"
+
+class ElsestatementNode(StatementNode):
+
+    def __init__(self):
+        super().__init__()
+
+    def getChildren(self):
+        return [self.block]
+
+    def toString(self):
+        return "else"
+
+
+class WhilestatementNode(StatementNode):
+    condition:AbsNode
+
+    def __init__(self):
+        super().__init__()
+
+    def setCondition(self,condition):
+        self.condition = condition
+
+    def getChildren(self):
+        return [self.condition,self.block]
+
+    def toString(self):
+        return "while"
+
+class ForstatementNode(WhilestatementNode):
+
+    def __init__(self):
+        super().__init__()
+
+    def addChild(self,child):
+        child.setParent(self)
+        self.children = []
+        self.children.append(child)
+
+    def toString(self):
+        return "for"
+
+class ConditionNode(AbsNode):
+
+    def __init__(self):
+        super().__init__()
+        self.children = []
+        parent = None
+
+    def toString(self):
+        return "condition"
+
+    def getChildren(self):
+        return self.children
+
+    def addChild(self,child):
+        child.setParent(self)
+        self.children.append(child)
+
+    def checkParent(self,parent):
+        self.setParent(parent)
+        for c in self.getChildren():
+            c.checkParent(self)
+
+class BreakNode(TermNode):
+    def __init__(self):
+        super().__init__("break")
+
+class ContinueNode(TermNode):
+    def __init__(self):
+        super().__init__("continue")

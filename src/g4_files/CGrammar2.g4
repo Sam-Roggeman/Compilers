@@ -1,9 +1,12 @@
 grammar CGrammar2;
 
 startRule
-    :(expr SEMICOL)* EOF
+    : file EOF
     ;
 
+file
+    : ((expr SEMICOL) | (statement))*
+    ;
 
 expr
     : mathExpr
@@ -12,10 +15,24 @@ expr
     | declaration_assignment
     | reference
     | variable
+    | BREAK
+    | CONTINUE
+    ;
+
+statement
+    : ifstatement (elsestatement)?
+    | whilestatement
+    | forstatement
     ;
 
 rvalue: mathExpr| variable ;
 function: printf;
+
+ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
+elsestatement: ELSE LCBR file RCBR;
+whilestatement: WHILE LBR expr RBR LCBR file RCBR;
+forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR file RCBR;
+
 declaration: (CONST)? types_specifier variable;
 declaration_assignment
     : (CONST)? types_specifier variable ASS rvalue
@@ -38,10 +55,10 @@ mathExpr : unOp mathExpr
     | mathExpr binOpPrio2 mathExpr
     // (+,-)
     | mathExpr binOpPrio1 mathExpr
-    // (||,&&)
-    | mathExpr logOp mathExpr
     // (<,>,==,<=,>=,!=)
     | mathExpr compOp mathExpr
+        // (||,&&)
+    | mathExpr logOp mathExpr
     // ((,))
     | LBR mathExpr RBR
     | literal
@@ -90,6 +107,8 @@ GT:'>';
 ASS:'=';
 LBR: '(';
 RBR: ')';
+LCBR: '{';
+RCBR: '}';
 AND: '&&';
 OR: '||';
 NOT: '!';
@@ -97,7 +116,14 @@ LTE: '<=';
 GTE: '>=';
 NE: '!=';
 MOD: '%';
-
+IF: 'if';
+ELSE: 'else';
+WHILE: 'while';
+FOR: 'for';
+BREAK: 'break';
+CONTINUE: 'continue';
+RETURN: 'return';
+VOID: 'void';
 //semicolon
 SEMICOL: ';';
 
