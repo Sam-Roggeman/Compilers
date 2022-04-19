@@ -74,7 +74,7 @@ class AST:
 
     def optimize(self):
         self._root.checkParent()
-        ASTUsageVisitor(ctx=self._root,symbol_table=self._root.symbol_table)
+        ASTUsageVisitor(ctx=self._root, symbol_table=self._root.symbol_table)
         # removeUnUsed(self.getRoot(),self.getSymbolTable(()))
         # ASTConstVisitor(self.getRoot(), self.getSymbolTable(()))
         # self._symbol_table.reIndex()

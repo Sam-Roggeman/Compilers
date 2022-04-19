@@ -26,19 +26,19 @@ class LLVMBuilder:
     def incrReg(self):
         self._current_reg += 1
 
-    def loadInRegister(self, memorytype:str, size:int, reg_tocopy: int):
-
+    def loadInRegister(self, memorytype: str, size: int, reg_tocopy: int):
         # %4 = load i32, i32* %1, align 4
-        self._output.write("\t%" + str(self._current_reg) + " = load " + memorytype + ", "+memorytype+"* %" + str(reg_tocopy) + ", align " + str(size) + '\n')
+        self._output.write("\t%" + str(self._current_reg) + " = load " + memorytype + ", " + memorytype + "* %" + str(
+            reg_tocopy) + ", align " + str(size) + '\n')
 
         returnval = self._current_reg
         self._regToType[returnval] = memorytype
         self.incrReg()
         return returnval
 
-    def binOp(self, op : str, memorytype: str, v1, v2):
+    def binOp(self, op: str, memorytype: str, v1, v2):
         #   %6 = add nsw i32 %4, %5
-        self._output.write("\t%" + str(self._current_reg)+" = "+op +" nsw " + memorytype + str(v1) + ', ' + v2)
+        self._output.write("\t%" + str(self._current_reg) + " = " + op + " nsw " + memorytype + str(v1) + ', ' + v2)
         returnval = self._current_reg
         self.incrReg()
         return returnval

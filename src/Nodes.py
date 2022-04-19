@@ -20,6 +20,7 @@ def richest(node1: type, node2: type):
     if node1 == TermCharNode or node2 == TermCharNode:
         return TermCharNode
 
+
 class AbsNode:
 
     def setRvalue(self):
@@ -137,6 +138,7 @@ class TermNode(AbsNode):
 
     def getValue(self):
         return self
+
     @staticmethod
     def convertNode(child):
         return child
@@ -145,7 +147,6 @@ class TermNode(AbsNode):
         super().__init__()
         self.value = value
         self._lvalue = False
-
 
     def __add__(self, other):
         # richest_type = richest(type(self),type(other))
@@ -260,7 +261,6 @@ class TermIntNode(TermNode):
         return child
 
 
-
 class TermFloatNode(TermNode):
 
     def __init__(self, value: float = None):
@@ -322,153 +322,159 @@ class TermCharNode(TermNode):
             return nchild
         return child
 
+
 class VariableNameNode(AbsNode):
-        def __init__(self):
-            super().__init__()
-            self._name: str = ""
-            self.referenced = False
+    def __init__(self):
+        super().__init__()
+        self._name: str = ""
+        self.referenced = False
 
-        def setReferenced(self):
-            self.referenced = True
+    def setReferenced(self):
+        self.referenced = True
 
-        def isReferenced(self):
-            return self.referenced
+    def isReferenced(self):
+        return self.referenced
 
-        def checkParent(self, parent):
-            self.setParent(parent)
+    def checkParent(self, parent):
+        self.setParent(parent)
 
-        def setName(self, name: str):
-            self._name = name
+    def setName(self, name: str):
+        self._name = name
 
-        def getName(self):
-            return self._name
+    def getName(self):
+        return self._name
 
-        def __str__(self):
-            return self.toString()
+    def __str__(self):
+        return self.toString()
 
-        def toString(self):
-            return self.getName()
+    def toString(self):
+        return self.getName()
 
-        def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
-            if self._name:
-                if self.getName() not in lhcounter.keys():
-                    lhcounter[self.getName()] = 0
-                if self.getName() not in rhcounter.keys():
-                    rhcounter[self.getName()] = 0
+    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
+        if self._name:
+            if self.getName() not in lhcounter.keys():
+                lhcounter[self.getName()] = 0
+            if self.getName() not in rhcounter.keys():
+                rhcounter[self.getName()] = 0
 
-                node = self
-                while not isinstance(node.parent, AssNode):
-                    if isinstance(node.parent, StatementNode):
-                        break
-                    node = node.parent
+            node = self
+            while not isinstance(node.parent, AssNode):
                 if isinstance(node.parent, StatementNode):
-                    return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
-                elif node.parent.getChildren()[0] == node:
-                    lhcounter[self.getName()] += 1
-                else:
-                    rhcounter[self.getName()] += 1
-            return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+                    break
+                node = node.parent
+            if isinstance(node.parent, StatementNode):
+                return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+            elif node.parent.getChildren()[0] == node:
+                lhcounter[self.getName()] += 1
+            else:
+                rhcounter[self.getName()] += 1
+        return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+
 
 class VariableNode(VariableNameNode):
 
-        def __str__(self):
-            return super().__str__()
+    def __str__(self):
+        return super().__str__()
 
-        def makeConst(self):
-            self.const = True
+    def makeConst(self):
+        self.const = True
 
-        def isConst(self):
-            return self.const
+    def isConst(self):
+        return self.const
 
-        def copy(self):
-            return copy.deepcopy(self)
+    def copy(self):
+        return copy.deepcopy(self)
 
-        def unUsed(self):
-            self.no_use = True
+    def unUsed(self):
+        self.no_use = True
 
-        def isUnUsed(self):
-            return self.no_use
+    def isUnUsed(self):
+        return self.no_use
 
-        # def convertNode(self):
-        # nchild = self._convertfunction(self._child)
-        # nchild.addMetaData(self._child.getMetaData())
-        # return self.setChild(nchild)
+    # def convertNode(self):
+    # nchild = self._convertfunction(self._child)
+    # nchild.addMetaData(self._child.getMetaData())
+    # return self.setChild(nchild)
 
-        def fold(self):
-            return self
+    def fold(self):
+        return self
 
-        def __init__(self):
-            super().__init__()
-            # self._convertfunction = self._child.convertNode
-            self.const: bool = False
-            self.no_use: bool = False
-            self._convertfunction = None
+    def __init__(self):
+        super().__init__()
+        # self._convertfunction = self._child.convertNode
+        self.const: bool = False
+        self.no_use: bool = False
+        self._convertfunction = None
 
-        def toString(self):
-            string = ""
-            if self.const:
-                string += "const "
-            if self._name:
-                string += self.getType() + " " + self.getName()
-            else:
-                string += self.getType()
-            return string
+    def toString(self):
+        string = ""
+        if self.const:
+            string += "const "
+        if self._name:
+            string += self.getType() + " " + self.getName()
+        else:
+            string += self.getType()
+        return string
 
-        def getValue(self):
-            return self
+    def getValue(self):
+        return self
 
 
 class FunctionNode(AbsNode):
-        functionName: str
-        parameters: list
+    functionName: str
+    parameters: list
 
-        def __init__(self, name, parameters):
-            super().__init__()
-            self.functionName = name
-            self.parameters = parameters
+    def __init__(self, name, parameters):
+        super().__init__()
+        self.functionName = name
+        self.parameters = parameters
+
 
 class PrintfNode(FunctionNode):
 
-        def __init__(self, parameters):
-            super().__init__("printf", parameters)
+    def __init__(self, parameters):
+        super().__init__("printf", parameters)
 
-        def toString(self):
-            return "printf(" + str(self.parameters[0]) + ")"
+    def toString(self):
+        return "printf(" + str(self.parameters[0]) + ")"
+
 
 class VariableIntNode(VariableNode):
-        def __init__(self):
-            super().__init__()
+    def __init__(self):
+        super().__init__()
 
-        def getLLVMType(self):
-            return i32
+    def getLLVMType(self):
+        return i32
 
-        def getType(self):
-            return "i32"
+    def getType(self):
+        return "i32"
 
-        def getSize(self):
-            return 4
+    def getSize(self):
+        return 4
+
 
 class VariableFloatNode(VariableNode):
 
-        def __init__(self):
-            super().__init__()
+    def __init__(self):
+        super().__init__()
 
-        def getLLVMType(self):
-            return cfloat
+    def getLLVMType(self):
+        return cfloat
 
-        def getType(self):
-            return "float"
+    def getType(self):
+        return "float"
+
 
 class VariableCharNode(VariableNode):
 
-        def __init__(self):
-            super().__init__()
+    def __init__(self):
+        super().__init__()
 
-        def getLLVMType(self):
-            return cchar
+    def getLLVMType(self):
+        return cchar
 
-        def getType(self):
-            return "char"
+    def getType(self):
+        return "char"
 
 
 class VariableEntry(object):
@@ -485,7 +491,7 @@ class VariableEntry(object):
         self.lhscounter = 0
         self.rhscounter = 0
 
-    def setcounters(self,lhs,rhs):
+    def setcounters(self, lhs, rhs):
         self.lhscounter = lhs
         self.rhscounter = rhs
 
@@ -503,7 +509,6 @@ class SymbolTable:
     # dict[str, VariableEntry]
     variables = dict()
 
-
     def __init__(self):
         self.children = []
         self.parent = None
@@ -518,10 +523,10 @@ class SymbolTable:
             self.variables[node.getName()] = VariableEntry()
         self.variables[node.getName()].node = node
 
-    def setParent(self,parent):
+    def setParent(self, parent):
         self.parent = parent
 
-    def addChild(self,child):
+    def addChild(self, child):
         child.setParent(self)
         self.children.append(child)
 
@@ -564,13 +569,14 @@ class SymbolTable:
             raise UninitializedException(varname=name)
 
         return self.variables[name]
-    def foundRHS(self,name):
-          tableEntry = self.getTableEntry(name)
-          tableEntry.rhscounter += 1
 
-    def foundLHS(self,name):
-          tableEntry = self.getTableEntry(name)
-          tableEntry.lhscounter += 1
+    def foundRHS(self, name):
+        tableEntry = self.getTableEntry(name)
+        tableEntry.rhscounter += 1
+
+    def foundLHS(self, name):
+        tableEntry = self.getTableEntry(name)
+        tableEntry.lhscounter += 1
 
     def setConst(self):
         for value in self.variables.values():
@@ -580,11 +586,11 @@ class SymbolTable:
                 pass
             elif lhscounter == 1:
                 value.node.makeConst()
+
+
 class CodeblockNode(AbsNode):
 
-
-
-    def checkParent(self,parent= None):
+    def checkParent(self, parent=None):
         if parent:
             self.parent = parent
         for c in self.getChildren():
@@ -597,7 +603,7 @@ class CodeblockNode(AbsNode):
     def getSymbolTable(self):
         return self.symbol_table
 
-    def setSymbolTabel(self,symboltable):
+    def setSymbolTabel(self, symboltable):
         self.symbol_table = symboltable
 
     def __init__(self):
@@ -622,6 +628,7 @@ class CodeblockNode(AbsNode):
         for index in range(len(self.children)):
             self.children[index] = self.children[index].fold()
 
+
 class ProgramNode(CodeblockNode):
     def __init__(self):
         super().__init__()
@@ -629,8 +636,8 @@ class ProgramNode(CodeblockNode):
     def toString(self):
         return "Program"
 
-class UnOpNode(AbsNode):
 
+class UnOpNode(AbsNode):
 
     def checkParent(self, parent):
         self.setParent(parent)
@@ -703,8 +710,6 @@ class BinOpNode(AbsNode):
     def solveTypes(self):
         self.type = richest(type(self.lhs), type(self.rhs))
         AbsNode.solveTypes(self)
-
-
 
     def checkParent(self, parent):
         self.setParent(parent)
@@ -1054,30 +1059,28 @@ class PointerNode(VariableNode):
 
 class StatementNode(AbsNode):
 
-
     def __init__(self):
         super().__init__()
         self.block = None
         self.children = []
         self.symbol_table = None
 
-
-    def setBlock(self,block):
+    def setBlock(self, block):
         self.block = block
 
     def getSymbolTable(self):
         return self.symbol_table
 
-    def setSymbolTabel(self,symboltable):
+    def setSymbolTabel(self, symboltable):
         self.symbol_table = symboltable
 
     def getChildren(self):
         return self.children
 
-    def addChild(self,child):
+    def addChild(self, child):
         self.children.append(child)
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
@@ -1085,21 +1088,22 @@ class StatementNode(AbsNode):
     def toString(self):
         return "statement"
 
+
 class IfstatementNode(StatementNode):
-    condition:AbsNode
+    condition: AbsNode
 
     def __init__(self):
         super().__init__()
 
-
-    def setCondition(self,condition):
+    def setCondition(self, condition):
         self.condition = condition
 
     def getChildren(self):
-        return [self.condition,self.block]
+        return [self.condition, self.block]
 
     def toString(self):
         return "if"
+
 
 class ElsestatementNode(StatementNode):
 
@@ -1114,32 +1118,34 @@ class ElsestatementNode(StatementNode):
 
 
 class WhilestatementNode(StatementNode):
-    condition:AbsNode
+    condition: AbsNode
 
     def __init__(self):
         super().__init__()
 
-    def setCondition(self,condition):
+    def setCondition(self, condition):
         self.condition = condition
 
     def getChildren(self):
-        return [self.condition,self.block]
+        return [self.condition, self.block]
 
     def toString(self):
         return "while"
+
 
 class ForstatementNode(WhilestatementNode):
 
     def __init__(self):
         super().__init__()
 
-    def addChild(self,child):
+    def addChild(self, child):
         child.setParent(self)
         self.children = []
         self.children.append(child)
 
     def toString(self):
         return "for"
+
 
 class ConditionNode(AbsNode):
 
@@ -1154,18 +1160,20 @@ class ConditionNode(AbsNode):
     def getChildren(self):
         return self.children
 
-    def addChild(self,child):
+    def addChild(self, child):
         child.setParent(self)
         self.children.append(child)
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
 
+
 class BreakNode(TermNode):
     def __init__(self):
         super().__init__("break")
+
 
 class ContinueNode(TermNode):
     def __init__(self):

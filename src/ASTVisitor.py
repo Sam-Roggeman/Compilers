@@ -21,29 +21,29 @@ class AbsASTVisitor:
         elif isinstance(ctx, BinOpNode):
             if isinstance(ctx, BinPlusNode):
                 return self.visitBinPlusNode(ctx)
-            elif isinstance(ctx,BinOrNode):
+            elif isinstance(ctx, BinOrNode):
                 return self.visitBinOrNode(ctx)
-            elif isinstance(ctx,BinAndNode):
+            elif isinstance(ctx, BinAndNode):
                 return self.visitBinAndNode(ctx)
-            elif isinstance(ctx,BinNENode):
+            elif isinstance(ctx, BinNENode):
                 return self.visitBinNENode(ctx)
-            elif isinstance(ctx,BinEQNode):
+            elif isinstance(ctx, BinEQNode):
                 return self.visitBinEQNode(ctx)
-            elif isinstance(ctx,BinDisNode):
+            elif isinstance(ctx, BinDisNode):
                 return self.visitBinDisNode(ctx)
-            elif isinstance(ctx,BinModNode):
+            elif isinstance(ctx, BinModNode):
                 return self.visitBinModNode(ctx)
-            elif isinstance(ctx,BinMulNode):
+            elif isinstance(ctx, BinMulNode):
                 return self.visitBinMulNode(ctx)
-            elif isinstance(ctx,BinMinNode):
+            elif isinstance(ctx, BinMinNode):
                 return self.visitBinMinNode(ctx)
-            elif isinstance(ctx,BinGTENode):
+            elif isinstance(ctx, BinGTENode):
                 return self.visitBinGTENode(ctx)
-            elif isinstance(ctx,BinGTNode):
+            elif isinstance(ctx, BinGTNode):
                 return self.visitBinGTNode(ctx)
-            elif isinstance(ctx,BinLTNode):
+            elif isinstance(ctx, BinLTNode):
                 return self.visitBinLTNode(ctx)
-            elif isinstance(ctx,BinLTENode):
+            elif isinstance(ctx, BinLTENode):
                 return self.visitBinLTENode(ctx)
         elif isinstance(ctx, VariableNode):
             if isinstance(ctx, VariableIntNode):
@@ -62,14 +62,14 @@ class AbsASTVisitor:
             return self.visitPointerNode(ctx)
         elif isinstance(ctx, RefNode):
             return self.visitRefNode(ctx)
-        elif isinstance(ctx,StatementNode):
-            if isinstance(ctx,IfstatementNode):
+        elif isinstance(ctx, StatementNode):
+            if isinstance(ctx, IfstatementNode):
                 return self.visitIfstatementNode(ctx)
-            elif isinstance(ctx,ElsestatementNode):
+            elif isinstance(ctx, ElsestatementNode):
                 return self.visitElsestatementNode(ctx)
-            elif isinstance(ctx,WhilestatementNode):
+            elif isinstance(ctx, WhilestatementNode):
                 return self.visitWhilestatementNode(ctx)
-            elif isinstance(ctx,ForstatementNode):
+            elif isinstance(ctx, ForstatementNode):
                 return self.visitForstatementNode(ctx)
             else:
                 return self.visitStatementNode(ctx)
@@ -184,11 +184,11 @@ class ASTUsageVisitor(AbsASTVisitor):
     def visitVariableNameNode(self, ctx):
         self.default(ctx)
 
-    def visitVariableNode(self, ctx:VariableNode):
-        
+    def visitVariableNode(self, ctx: VariableNode):
+
         if ctx.isRvalue():
             return self.symbol_table.foundRHS(ctx.getName())
-        self.symbol_table.foundLHS(ctx.getName())    
+        self.symbol_table.foundLHS(ctx.getName())
 
     def visitVariableFloatNode(self, ctx):
         self.visitVariableNode(ctx)
@@ -345,6 +345,7 @@ class ASTConstVisitor(AbsASTVisitor):
 
     def visitPointerNode(self, ctx):
         return self.default(ctx)
+
     def visitBinLTENode(self, ctx):
         return self.visitBinOpNode(ctx)
 
@@ -383,6 +384,7 @@ class ASTConstVisitor(AbsASTVisitor):
 
     def visitBinLTNode(self, ctx):
         return self.visitBinOpNode(ctx)
+
 
 class removeUnUsed(AbsASTVisitor):
     def visitCodeBlockNode(self, ctx):
@@ -433,6 +435,7 @@ class removeUnUsed(AbsASTVisitor):
 
     def visitPointerNode(self, ctx):
         return False
+
     def visitBinLTENode(self, ctx):
         return self.visitBinOpNode(ctx)
 
