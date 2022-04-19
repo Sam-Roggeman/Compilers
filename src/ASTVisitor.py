@@ -60,9 +60,19 @@ class AbsASTVisitor:
             return self.visitPrintfNode(ctx)
         elif isinstance(ctx, PointerNode):
             return self.visitPointerNode(ctx)
-
         elif isinstance(ctx, RefNode):
             return self.visitRefNode(ctx)
+        elif isinstance(ctx,StatementNode):
+            if isinstance(ctx,IfstatementNode):
+                return self.visitIfstatementNode(ctx)
+            elif isinstance(ctx,ElsestatementNode):
+                return self.visitElsestatementNode(ctx)
+            elif isinstance(ctx,WhilestatementNode):
+                return self.visitWhilestatementNode(ctx)
+            elif isinstance(ctx,ForstatementNode):
+                return self.visitForstatementNode(ctx)
+            else:
+                return self.visitStatementNode(ctx)
 
     def visitVariableFloatNode(self, ctx):
         pass
@@ -79,8 +89,6 @@ class AbsASTVisitor:
 
     def visitCodeBlockNode(self, ctx):
         pass
-
-
 
     def visitTermNode(self, ctx):
         pass
@@ -150,6 +158,134 @@ class AbsASTVisitor:
 
     def visitBinLTNode(self, ctx):
         pass
+
+    def visitIfstatementNode(self, ctx):
+        pass
+
+    def visitElsestatementNode(self, ctx):
+        pass
+
+    def visitWhilestatementNode(self, ctx):
+        pass
+
+    def visitForstatementNode(self, ctx):
+        pass
+
+    def visitStatementNode(self, ctx):
+        pass
+
+
+class ASTUsageVisitor(AbsASTVisitor):
+
+    def default(self, ctx):
+        for index in range(len(ctx.getChildren())):
+            self.visit(ctx.getChildren()[index])
+
+    def visitVariableNameNode(self, ctx):
+        self.default(ctx)
+
+    def visitVariableNode(self, ctx:VariableNode):
+        
+        if ctx.isRvalue():
+            return self.symbol_table.foundRHS(ctx.getName())
+        self.symbol_table.foundLHS(ctx.getName())    
+
+    def visitVariableFloatNode(self, ctx):
+        self.visitVariableNode(ctx)
+
+    def visitVariableCharNode(self, ctx):
+        self.visitVariableNode(ctx)
+
+    def visitVariableIntNode(self, ctx):
+        self.visitVariableNode(ctx)
+
+    def visitChildren(self, ctx):
+        for child in ctx.getChildren():
+            self.visit(child)
+
+    def visitCodeBlockNode(self, ctx):
+        self.symbol_table = ctx.getSymbolTable()
+        self.default(ctx)
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+
+    def visitTermNode(self, ctx):
+        self.default(ctx)
+
+    def visitUnOpNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinOpNode(self, ctx):
+        self.default(ctx)
+
+    def visitFunctionNode(self, ctx):
+        self.default(ctx)
+
+    def visitPrintfNode(self, ctx):
+        self.default(ctx)
+
+    def visitRefNode(self, ctx):
+        self.default(ctx)
+
+    def visitAssNode(self, ctx):
+        self.default(ctx)
+
+    def visitPointerNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinLTENode(self, ctx):
+        self.default(ctx)
+
+    def visitBinPlusNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinAndNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinOrNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinEQNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinModNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinDisNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinMinNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinGTNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinGTENode(self, ctx):
+        self.default(ctx)
+
+    def visitBinNENode(self, ctx):
+        self.default(ctx)
+
+    def visitBinMulNode(self, ctx):
+        self.default(ctx)
+
+    def visitBinLTNode(self, ctx):
+        self.default(ctx)
+
+    def visitIfstatementNode(self, ctx):
+        self.default(ctx)
+
+    def visitElsestatementNode(self, ctx):
+        self.default(ctx)
+
+    def visitWhilestatementNode(self, ctx):
+        self.default(ctx)
+
+    def visitForstatementNode(self, ctx):
+        self.default(ctx)
+
+    def visitStatementNode(self, ctx):
+        self.default(ctx)
 
 
 class ASTConstVisitor(AbsASTVisitor):

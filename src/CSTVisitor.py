@@ -8,7 +8,8 @@ from SymbolTable import *
 # This class defines a complete generic visitor for a parse tree produced by CGrammarParser.
 
 class CGrammarVisitorImplementation(CGrammarVisitor):
-    _symbol_table: SymbolTable = SymbolTable()
+    def __init__(self):
+        self.symbol_table = None
 
     # Visit a parse tree produced by CGrammarParser#startRule.
     def visitStartRule(self, ctx: CGrammarParser.StartRuleContext):
@@ -82,7 +83,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node = self.visit(ctx.types_specifier())
         name = ctx.variable().getText()
         node.setName(name)
-        self._symbol_table.append(node)
+        self.symbol_table.append(node)
         if ctx.CONST():
             node.makeConst()
         return self.visitChildren(ctx)
@@ -100,7 +101,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
         name = ctx.variable()[0].getText()
         node1.setName(name)
-        self._symbol_table.append(node1)
+        self.symbol_table.append(node1)
         if ctx.CONST():
             node1.makeConst()
 
@@ -118,10 +119,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             node2.setChild(child)
             node2.setRvalue()
 
-        self._symbol_table.setValue(name,node2)
+        self.symbol_table.setValue(name, node2)
         assinmentNode = AssNode()
-        assinmentNode.setChild(node1,0)
-        assinmentNode.setChild(node2,1)
+        assinmentNode.setChild(node1, 0)
+        assinmentNode.setChild(node2, 1)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#assignment.
@@ -130,13 +131,13 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node2 = None
         # todo error report
         name = ctx.variable()[0].getText()
-        node1 = copy.deepcopy(self._symbol_table.getVar(varname=ctx.getText()))
+        node1 = copy.deepcopy(self.symbol_table.getVar(varname=name))
         # Node2
         node2 = self.visit(ctx.rvalue())
-        self._symbol_table.setValue(name,node2)
+        self.symbol_table.setValue(name, node2)
         assinmentNode = AssNode()
-        assinmentNode.setChild(node1,0)
-        assinmentNode.setChild(node2,1)
+        assinmentNode.setChild(node1, 0)
+        assinmentNode.setChild(node2, 1)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#reference.
@@ -234,7 +235,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     # Visit a parse tree produced by CGrammarParser#variable.
     def visitVariable(self, ctx: CGrammarParser.VariableContext):
         # print("visitVariable")
-        node = copy.deepcopy(self._symbol_table.getVar(varname=ctx.getText()))
+        node = copy.deepcopy(self.symbol_table.getVar(varname=ctx.getText()))
 
         return node
 
@@ -268,17 +269,20 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         # print("visitPrintf")
         return self.visitChildren(ctx)
 
-    def visitFile(self, ctx:CGrammarParser.FileContext):
+    def visitFile(self, ctx: CGrammarParser.FileContext):
         node1 = CodeblockNode()
+        if self.symbol_table:
+            self.symbol_table.addChild(node1.getSymbolTable())
+        self.symbol_table = node1.getSymbolTable()
         for c in ctx.getChildren():
-            print(c.getText())
             astchild = self.visit(c)
             if astchild:
                 node1.addchild(astchild)
-
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
         return node1
 
-    def visitStatement(self, ctx:CGrammarParser.StatementContext):
+    def visitStatement(self, ctx: CGrammarParser.StatementContext):
         node1 = StatementNode()
         for c in ctx.getChildren():
             astchild = self.visit(c)
@@ -287,59 +291,56 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
         return node1
 
-    def visitIfstatement(self, ctx:CGrammarParser.IfstatementContext):
+    def visitIfstatement(self, ctx: CGrammarParser.IfstatementContext):
         condition = ConditionNode()
-        child = self.visit(ctx.expr())
-        condition.addChild(child)
-        codeblock = self.visit(ctx.file())
         node = IfstatementNode()
-        node.setCondition(condition)
-        node.setBlock(codeblock)
-        return node
-
-    def visitElsestatement(self, ctx:CGrammarParser.ElsestatementContext):
-        codeblock = self.visit(ctx.file())
-        node = ElsestatementNode()
-        node.setBlock(codeblock)
-        return node
-
-    def visitWhilestatement(self, ctx:CGrammarParser.WhilestatementContext):
-        condition = ConditionNode()
         child = self.visit(ctx.expr())
         condition.addChild(child)
         codeblock = self.visit(ctx.file())
-        node = WhilestatementNode()
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
 
-    def visitForstatement(self, ctx:CGrammarParser.ForstatementContext):
+    def visitElsestatement(self, ctx: CGrammarParser.ElsestatementContext):
+        node = ElsestatementNode()
+        codeblock = self.visit(ctx.file())
+        node.setBlock(codeblock)
+        return node
+
+    def visitWhilestatement(self, ctx: CGrammarParser.WhilestatementContext):
         condition = ConditionNode()
+        node = WhilestatementNode()
+        child = self.visit(ctx.expr())
+        condition.addChild(child)
+        codeblock = self.visit(ctx.file())
+        node.setCondition(condition)
+        node.setBlock(codeblock)
+        return node
+
+    def visitForstatement(self, ctx: CGrammarParser.ForstatementContext):
+        condition = ConditionNode()
+        node = ForstatementNode()
         expressions = ctx.expr()
         for c in range(len(expressions)):
             expr = self.visit(ctx.expr(c))
             condition.addChild(expr)
         codeblock = self.visit(ctx.file())
-        node = ForstatementNode()
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
 
-    def findNode(self, name: str):
-        deref_count = 0
-        for c in name:
-            if c == '*':
-                deref_count = + 1
-            else:
-                break
-        name = name[deref_count:]
-        s = self._symbol_table.getVar(varname=name)
-        for i in range(0, deref_count):
-            s = s.deRef()
-        return s
-
-    def getSymbolTable(self):
-        return self._symbol_table
+    # def findNode(self, name: str):
+    #     deref_count = 0
+    #     for c in name:
+    #         if c == '*':
+    #             deref_count = + 1
+    #         else:
+    #             break
+    #     name = name[deref_count:]
+    #     s = self._symbol_table.getVar(varname=name)
+    #     for i in range(0, deref_count):
+    #         s = s.deRef()
+    #     return s
 
 
 del CGrammarParser

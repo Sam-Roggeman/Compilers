@@ -5,7 +5,7 @@ from typing import TextIO
 class LLVMBuilder:
     _output: TextIO
     _current_reg: int = 1
-    _regToType: dict[int:str] = dict()
+    _regToType = dict()
 
     def __init__(self, filepath: str):
         self._output = open(file=filepath, mode='w')

@@ -82,6 +82,7 @@ class AbsNode:
         self._metadata: MetaData
         self._lvalue = True
         self.rvalue = False
+        self.symbol_table = None
 
     def toString(self):
         return ""
@@ -321,7 +322,268 @@ class TermCharNode(TermNode):
             return nchild
         return child
 
+class VariableNameNode(AbsNode):
+        def __init__(self):
+            super().__init__()
+            self._name: str = ""
+            self.referenced = False
+
+        def setReferenced(self):
+            self.referenced = True
+
+        def isReferenced(self):
+            return self.referenced
+
+        def checkParent(self, parent):
+            self.setParent(parent)
+
+        def setName(self, name: str):
+            self._name = name
+
+        def getName(self):
+            return self._name
+
+        def __str__(self):
+            return self.toString()
+
+        def toString(self):
+            return self.getName()
+
+        def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
+            if self._name:
+                if self.getName() not in lhcounter.keys():
+                    lhcounter[self.getName()] = 0
+                if self.getName() not in rhcounter.keys():
+                    rhcounter[self.getName()] = 0
+
+                node = self
+                while not isinstance(node.parent, AssNode):
+                    if isinstance(node.parent, StatementNode):
+                        break
+                    node = node.parent
+                if isinstance(node.parent, StatementNode):
+                    return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+                elif node.parent.getChildren()[0] == node:
+                    lhcounter[self.getName()] += 1
+                else:
+                    rhcounter[self.getName()] += 1
+            return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
+
+class VariableNode(VariableNameNode):
+
+        def __str__(self):
+            return super().__str__()
+
+        def makeConst(self):
+            self.const = True
+
+        def isConst(self):
+            return self.const
+
+        def copy(self):
+            return copy.deepcopy(self)
+
+        def unUsed(self):
+            self.no_use = True
+
+        def isUnUsed(self):
+            return self.no_use
+
+        # def convertNode(self):
+        # nchild = self._convertfunction(self._child)
+        # nchild.addMetaData(self._child.getMetaData())
+        # return self.setChild(nchild)
+
+        def fold(self):
+            return self
+
+        def __init__(self):
+            super().__init__()
+            # self._convertfunction = self._child.convertNode
+            self.const: bool = False
+            self.no_use: bool = False
+            self._convertfunction = None
+
+        def toString(self):
+            string = ""
+            if self.const:
+                string += "const "
+            if self._name:
+                string += self.getType() + " " + self.getName()
+            else:
+                string += self.getType()
+            return string
+
+        def getValue(self):
+            return self
+
+
+class FunctionNode(AbsNode):
+        functionName: str
+        parameters: list
+
+        def __init__(self, name, parameters):
+            super().__init__()
+            self.functionName = name
+            self.parameters = parameters
+
+class PrintfNode(FunctionNode):
+
+        def __init__(self, parameters):
+            super().__init__("printf", parameters)
+
+        def toString(self):
+            return "printf(" + str(self.parameters[0]) + ")"
+
+class VariableIntNode(VariableNode):
+        def __init__(self):
+            super().__init__()
+
+        def getLLVMType(self):
+            return i32
+
+        def getType(self):
+            return "i32"
+
+        def getSize(self):
+            return 4
+
+class VariableFloatNode(VariableNode):
+
+        def __init__(self):
+            super().__init__()
+
+        def getLLVMType(self):
+            return cfloat
+
+        def getType(self):
+            return "float"
+
+class VariableCharNode(VariableNode):
+
+        def __init__(self):
+            super().__init__()
+
+        def getLLVMType(self):
+            return cchar
+
+        def getType(self):
+            return "char"
+
+
+class VariableEntry(object):
+    const: bool
+    type: type
+    node: VariableNode
+    value: TermNode
+    register: str
+    lhscounter: int
+    rhscounter: int
+
+    def __init__(self):
+        self.const = False
+        self.lhscounter = 0
+        self.rhscounter = 0
+
+    def setcounters(self,lhs,rhs):
+        self.lhscounter = lhs
+        self.rhscounter = rhs
+
+    def getNode(self):
+        return self.node
+
+    def setConst(self):
+        self.const = True
+
+    def getConst(self):
+        return self.node.isConst()
+
+
+class SymbolTable:
+    # dict[str, VariableEntry]
+    variables = dict()
+
+
+    def __init__(self):
+        self.children = []
+        self.parent = None
+        self.variables = dict()
+
+    def getValue(self, varname):
+        tableEntry = self.getTableEntry(varname)
+        return tableEntry.value
+
+    def append(self, node: VariableNode):
+        if not node.getName() in self.variables:
+            self.variables[node.getName()] = VariableEntry()
+        self.variables[node.getName()].node = node
+
+    def setParent(self,parent):
+        self.parent = parent
+
+    def addChild(self,child):
+        child.setParent(self)
+        self.children.append(child)
+
+    def getVar(self, varname):
+        if varname not in self.variables:
+            if self.parent:
+                return self.parent.getVar(varname)
+            raise UninitializedException(varname=varname)
+
+        return self.variables[varname].node
+
+    def getConst(self, key):
+        tableEntry = self.getTableEntry(key)
+        return tableEntry.getConst()
+
+    # def getVariables(self, keys):
+    #     tableEntry = self.getTableEntry(keys)
+    #     return self.variables[keys]
+
+    def removeVar(self, varnode: VariableNode):
+        if varnode.getName() not in self.variables:
+            if self.parent:
+                return self.parent.removeVar(varnode)
+            raise UninitializedException(varname=varnode.getName())
+        self.variables.pop(varnode.getName())
+
+    def makeConst(self, key):
+        tableEntry = self.getTableEntry(key)
+        tableEntry.node.makeConst()
+        tableEntry.setConst()
+
+    def setValue(self, name, node2):
+        tableEntry = self.getTableEntry(name)
+        tableEntry.value = node2
+
+    def getTableEntry(self, name):
+        if name not in self.variables:
+            if self.parent:
+                return self.parent.getTableEntry(name)
+            raise UninitializedException(varname=name)
+
+        return self.variables[name]
+    def foundRHS(self,name):
+          tableEntry = self.getTableEntry(name)
+          tableEntry.rhscounter += 1
+
+    def foundLHS(self,name):
+          tableEntry = self.getTableEntry(name)
+          tableEntry.lhscounter += 1
+
+    def setConst(self):
+        for value in self.variables.values():
+            lhscounter = value.lhscounter
+            rhscounter = value.rhscounter
+            if rhscounter != 0 and lhscounter == 0:
+                pass
+            elif lhscounter == 1:
+                value.node.makeConst()
 class CodeblockNode(AbsNode):
+
+
+
     def checkParent(self,parent= None):
         if parent:
             self.parent = parent
@@ -332,9 +594,16 @@ class CodeblockNode(AbsNode):
         child.setParent(self)
         self.children[index] = child
 
+    def getSymbolTable(self):
+        return self.symbol_table
+
+    def setSymbolTabel(self,symboltable):
+        self.symbol_table = symboltable
+
     def __init__(self):
         super().__init__()
         self.children = []
+        self.symbol_table = SymbolTable()
 
     def addchild(self, child):
         child.setParent(self)
@@ -666,170 +935,6 @@ class BinOrNode(BinOpNode):
             return self
 
 
-class VariableNameNode(AbsNode):
-    def __init__(self):
-        super().__init__()
-        self._name: str = ""
-        self.referenced = False
-
-    def setReferenced(self):
-        self.referenced = True
-
-    def isReferenced(self):
-        return self.referenced
-
-    def checkParent(self, parent):
-        self.setParent(parent)
-
-    def setName(self, name: str):
-        self._name = name
-
-    def getName(self):
-        return self._name
-
-    def __str__(self):
-        return self.toString()
-
-    def toString(self):
-        return self.getName()
-
-    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
-        if self._name:
-            if self.getName() not in lhcounter.keys():
-                lhcounter[self.getName()] = 0
-            if self.getName() not in rhcounter.keys():
-                rhcounter[self.getName()] = 0
-
-            node = self
-            while not isinstance(node.parent, AssNode):
-                if isinstance(node.parent,StatementNode):
-                    break
-                node = node.parent
-            if isinstance(node.parent,StatementNode):
-                return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
-            elif node.parent.getChildren()[0] == node:
-                lhcounter[self.getName()] += 1
-            else:
-                rhcounter[self.getName()] += 1
-        return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
-
-
-class VariableNode(VariableNameNode):
-
-    def __str__(self):
-        return super().__str__()
-
-    def makeConst(self):
-        self.const = True
-
-    def isConst(self):
-        return self.const
-
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def unUsed(self):
-        self.no_use = True
-
-    def isUnUsed(self):
-        return self.no_use
-
-    # def convertNode(self):
-    # nchild = self._convertfunction(self._child)
-    # nchild.addMetaData(self._child.getMetaData())
-    # return self.setChild(nchild)
-
-    def fold(self):
-        return self
-
-    def __init__(self):
-        super().__init__()
-        # self._convertfunction = self._child.convertNode
-        self.const: bool = False
-        self.no_use: bool = False
-        self._convertfunction = None
-
-    def toString(self):
-        string = ""
-        if self.const:
-            string += "const "
-        if self._name:
-            string += self.getType() + " " + self.getName()
-        else:
-            string += self.getType()
-        return string
-
-    def getValue(self):
-        return self
-
-    def getType(self):
-        return ""
-
-    def getLLVMType(self):
-        return None
-
-    def getSize(self):
-        sys.stderr.write("size of abstract variable node asked, returned 0\n")
-        return 0
-
-
-class FunctionNode(AbsNode):
-    functionName: str
-    parameters: list
-
-    def __init__(self, name, parameters):
-        super().__init__()
-        self.functionName = name
-        self.parameters = parameters
-
-
-class PrintfNode(FunctionNode):
-
-    def __init__(self, parameters):
-        super().__init__("printf", parameters)
-
-    def toString(self):
-        return "printf(" + str(self.parameters[0]) + ")"
-
-
-class VariableIntNode(VariableNode):
-    def __init__(self):
-        super().__init__()
-
-    def getLLVMType(self):
-        return i32
-
-    def getType(self):
-        return "i32"
-
-    def getSize(self):
-        return 4
-
-
-class VariableFloatNode(VariableNode):
-
-    def __init__(self):
-        super().__init__()
-
-    def getLLVMType(self):
-        return cfloat
-
-    def getType(self):
-        return "float"
-
-
-class VariableCharNode(VariableNode):
-
-    def __init__(self):
-        super().__init__()
-
-    def getLLVMType(self):
-        return cchar
-
-    def getType(self):
-        return "char"
-
-
 class RefNode(AbsNode):
     child: VariableNode
 
@@ -937,6 +1042,15 @@ class PointerNode(VariableNode):
     def convertNode(child):
         pass
 
+    def getNode(self):
+        return self.node
+
+    def setConst(self):
+        self.const = True
+
+    def getConst(self):
+        return self.node.isConst()
+
 
 class StatementNode(AbsNode):
 
@@ -945,9 +1059,18 @@ class StatementNode(AbsNode):
         super().__init__()
         self.block = None
         self.children = []
+        self.symbol_table = None
+
 
     def setBlock(self,block):
         self.block = block
+
+    def getSymbolTable(self):
+        return self.symbol_table
+
+    def setSymbolTabel(self,symboltable):
+        self.symbol_table = symboltable
+
     def getChildren(self):
         return self.children
 

@@ -22,12 +22,12 @@ def main(argv):
     parser = CGrammarParser(stream)
     tree = parser.startRule()
     visitor = CGrammarVisitorImplementation()
-    a = AST(root=visitor.visitStartRule(ctx=tree),name=name,symbol_table= visitor.getSymbolTable())
+    a = AST(root=visitor.visitStartRule(ctx=tree),name=name)
 
     print("#PreOrder before optimize")
     print(a.preOrderTraversal(oneline=True))
     a.toDot(name="start")
-
+    a.optimize()
     print("#Preorder after optimalizations")
     print(a.preOrderTraversal(oneline=True))
     a.exportToLLVM()
