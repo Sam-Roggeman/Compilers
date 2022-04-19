@@ -10,8 +10,8 @@ class AbsASTVisitor:
         self.visit(ctx)
 
     def visit(self, ctx):
-        if isinstance(ctx, ProgramNode):
-            return self.visitProgramNode(ctx)
+        if isinstance(ctx, CodeblockNode):
+            return self.visitCodeBlockNode(ctx)
         elif isinstance(ctx, TermNode):
             return self.visitTermNode(ctx)
         elif isinstance(ctx, UnOpNode):
@@ -77,9 +77,10 @@ class AbsASTVisitor:
         for child in ctx.getChildren():
             self.visit(child)
 
-    def visitProgramNode(self, ctx):
-        print("hi")
+    def visitCodeBlockNode(self, ctx):
         pass
+
+
 
     def visitTermNode(self, ctx):
         pass
@@ -159,7 +160,7 @@ class ASTConstVisitor(AbsASTVisitor):
 
         return ctx
 
-    def visitProgramNode(self, ctx):
+    def visitCodeBlockNode(self, ctx):
         return self.default(ctx)
 
     def visitTermNode(self, ctx):
@@ -248,7 +249,7 @@ class ASTConstVisitor(AbsASTVisitor):
         return self.visitBinOpNode(ctx)
 
 class removeUnUsed(AbsASTVisitor):
-    def visitProgramNode(self, ctx):
+    def visitCodeBlockNode(self, ctx):
         for index in range(len(ctx.getChildren()) - 1, -1, -1):
             if self.visit(ctx.getChildren()[index]):
                 ctx.children.pop(index)

@@ -42,7 +42,7 @@ class llvmVisitor(AbsASTVisitor):
         for child in ctx.getChildren():
             self.visit(child)
 
-    def visitProgramNode(self, ctx: ProgramNode):
+    def visitCodeBlockNode(self, ctx: CodeblockNode):
         for variable in self._symbol_table.variables.values():
             a: ir.AllocaInstr = self.main.alloca(variable.node.getLLVMType(), 1)
             variable.register = a
@@ -51,6 +51,8 @@ class llvmVisitor(AbsASTVisitor):
 
         self.default(ctx)
         self.main.ret(ir.Constant(i32, 0))
+
+
 
     def visitTermNode(self, ctx: TermNode):
         return ctx.llvmValue()

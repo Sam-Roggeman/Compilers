@@ -124,8 +124,6 @@ class AbsNode:
 
 
 class TermNode(AbsNode):
-
-
     def checkParent(self, parent):
         if not self.parent:
             self.setParent(parent)
@@ -905,8 +903,6 @@ class PointerNode(VariableNode):
     _name = None
 
     def checkParent(self, parent):
-
-    def checkParent(self,parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
