@@ -1,4 +1,8 @@
-int a = 5;
-a = 1 + 2;
-float _b = 2.0f;
-char _v2 = 'g';
+#include <stdio.h>
+
+int main() {
+    int a = 1;
+    int b = 2;
+    float c = a+1;
+    printf("%f",c);
+}

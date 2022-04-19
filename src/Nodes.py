@@ -1,10 +1,27 @@
 import sys
 
 from Errors import *
+from llvmlite import ir
+
+# Create some useful types
+cfloat = ir.FloatType()
+i32 = ir.IntType(32)
+cchar = ir.IntType(8)
 
 
+class TermNode: pass
 
-class AbsNode():
+
+def richest(node1: type, node2: type):
+    if node1 == TermFloatNode or node2 == TermFloatNode:
+        return TermFloatNode
+    if node1 == TermIntNode or node2 == TermIntNode:
+        return TermIntNode
+    if node1 == TermCharNode or node2 == TermCharNode:
+        return TermCharNode
+
+
+class AbsNode:
     parent = None
     _metadata: MetaData
     _lvalue = True
@@ -16,10 +33,10 @@ class AbsNode():
     def isRvalue(self):
         return self.rvalue
 
-    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
+    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
         children = self.getChildren()
         for index in range(len(children)):
-            lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter,rhcounter=rhcounter)
+            lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter, rhcounter=rhcounter)
         return lhcounter, rhcounter
 
     def __str__(self):
@@ -28,12 +45,12 @@ class AbsNode():
     def setParent(self, parent):
         self.parent = parent
 
-    def removeChild(self,index):
+    def removeChild(self, index):
         pass
 
     def removeUnUsed(self):
         children = self.getChildren()
-        for index in range(len(children)-1,0,-1):
+        for index in range(len(children) - 1, 0, -1):
             if children[index].checkUnUsed():
                 self.removeChild(index)
 
@@ -102,14 +119,20 @@ class AbsNode():
     def isLvalue(self):
         return self._lvalue
 
+    def solveTypes(self):
+        children = self.getChildren()
+        for index in range(len(children)):
+            children[index].solveTypes()
+
 
 class TermNode(AbsNode):
     _lvalue = False
     value = None
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         if not self.parent:
             self.setParent(parent)
+
     def __str__(self):
         return str(self.value)
 
@@ -118,8 +141,8 @@ class TermNode(AbsNode):
 
     def getValue(self):
         return self
-
-    def convertNode(self, child):
+    @staticmethod
+    def convertNode(child):
         return child
 
     def __init__(self, value):
@@ -127,6 +150,7 @@ class TermNode(AbsNode):
         self.value = value
 
     def __add__(self, other):
+        # richest_type = richest(type(self),type(other))
         b = copy.deepcopy(self)
         other = self.convertNode(other)
         b.setValue(self.value + other.value)
@@ -201,6 +225,9 @@ class TermNode(AbsNode):
     def fold(self):
         return self
 
+    def llvmValue(self):
+        return ir.Constant(i32, self.value)
+
 
 class TermIntNode(TermNode):
     def __truediv__(self, other):
@@ -218,7 +245,8 @@ class TermIntNode(TermNode):
     def toString(self):
         return str(self.value)
 
-    def convertNode(self, child: TermNode):
+    @staticmethod
+    def convertNode(child: TermNode):
         if isinstance(child, TermIntNode):
             return child
         elif isinstance(child, TermFloatNode):
@@ -231,9 +259,15 @@ class TermIntNode(TermNode):
             nchild = TermIntNode(ord(child.value))
             # nchild.addMetaData(child.getMetaData())
             return nchild
-        elif len(child.getChildren()) != 0:
-            child.setChild(self.convertNode(child.getChildren()[0]), 0)
         return child
+
+    def isRicher(self, child: TermNode):
+        if isinstance(child, TermCharNode):
+            return True
+        elif isinstance(child, TermFloatNode):
+            return False
+        elif isinstance(child, TermIntNode):
+            return False
 
 
 class TermFloatNode(TermNode):
@@ -249,7 +283,8 @@ class TermFloatNode(TermNode):
     def toString(self):
         return str(self.value)
 
-    def convertNode(self, child: TermNode):
+    @staticmethod
+    def convertNode(child: TermNode):
         if isinstance(child, TermFloatNode):
             return child
         elif isinstance(child, TermIntNode):
@@ -261,9 +296,15 @@ class TermFloatNode(TermNode):
             nchild = TermFloatNode(float(ord(child.value)))
             nchild.addMetaData(child.getMetaData())
             return nchild
-        elif len(child.getChildren()) != 0:
-            child.setChild(self.convertNode(child.getChildren()[0]), 0)
         return child
+
+    def isRicher(self, child: TermNode):
+        if isinstance(child, TermCharNode):
+            return True
+        elif isinstance(child, TermFloatNode):
+            return False
+        elif isinstance(child, TermIntNode):
+            return True
 
 
 class TermCharNode(TermNode):
@@ -283,7 +324,16 @@ class TermCharNode(TermNode):
     def fold(self):
         return self
 
-    def convertNode(self, child: TermNode):
+    def isRicher(self, child: TermNode):
+        if isinstance(child, TermCharNode):
+            return False
+        elif isinstance(child, TermFloatNode):
+            return False
+        elif isinstance(child, TermIntNode):
+            return False
+
+    @staticmethod
+    def convertNode(child: TermNode):
         if isinstance(child, TermCharNode):
             return child
         elif isinstance(child, TermFloatNode):
@@ -296,8 +346,6 @@ class TermCharNode(TermNode):
             nchild = TermCharNode(chr(child.value))
             # nchild.addMetaData(child.getMetaData())
             return nchild
-        elif len(child.getChildren()) != 0:
-            child.setChild(self.convertNode(child.getChildren()[0]), 0)
         return child
 
 
@@ -307,6 +355,7 @@ class ProgramNode(AbsNode):
     def checkParent(self):
         for c in self.getChildren():
             c.checkParent(self)
+
     def setChild(self, child: AbsNode, index: int = 0):
         child.setParent(self)
         self.children[index] = child
@@ -321,7 +370,7 @@ class ProgramNode(AbsNode):
     def getChildren(self):
         return self.children
 
-    def removeChild(self,index):
+    def removeChild(self, index):
         self.children.pop(index)
 
     def toString(self):
@@ -335,10 +384,11 @@ class ProgramNode(AbsNode):
 class UnOpNode(AbsNode):
     rhs = None
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
+
     def setChild(self, child, index: int = 0):
         if index == 0:
             self.rhs = child
@@ -399,13 +449,22 @@ class UnNotNode(UnOpNode):
 class BinOpNode(AbsNode):
     lhs: TermNode
     rhs: TermNode
+    type: type
 
-    def checkParent(self,parent):
+    def solveTypes(self):
+        self.type = richest(type(self.lhs), type(self.rhs))
+        AbsNode.solveTypes(self)
+
+
+
+    def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
+
     def setChild(self, child, index: int = 0):
         if index == 0:
+
             self.lhs = child
             self.lhs.parent = self
         elif index == 1:
@@ -629,14 +688,13 @@ class VariableNameNode(AbsNode):
     _name: str = None
     referenced = False
 
-
     def setReferenced(self):
         self.referenced = True
 
     def isReferenced(self):
         return self.referenced
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
 
     def setName(self, name: str):
@@ -648,11 +706,10 @@ class VariableNameNode(AbsNode):
     def __str__(self):
         return self.toString()
 
-
     def toString(self):
         return self.getName()
 
-    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int]= dict()):
+    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
         if self._name:
             if self.getName() not in lhcounter.keys():
                 lhcounter[self.getName()] = 0
@@ -669,11 +726,11 @@ class VariableNameNode(AbsNode):
                 rhcounter[self.getName()] += 1
         return super().countUsages(rhcounter=rhcounter, lhcounter=lhcounter)
 
+
 class VariableNode(VariableNameNode):
     const: bool = False
     no_use: bool = False
     _convertfunction = None
-
 
     def __str__(self):
         return super().__str__()
@@ -683,8 +740,6 @@ class VariableNode(VariableNameNode):
 
     def isConst(self):
         return self.const
-
-
 
     def copy(self):
         return copy.deepcopy(self)
@@ -696,9 +751,9 @@ class VariableNode(VariableNameNode):
         return self.no_use
 
     # def convertNode(self):
-        # nchild = self._convertfunction(self._child)
-        # nchild.addMetaData(self._child.getMetaData())
-        # return self.setChild(nchild)
+    # nchild = self._convertfunction(self._child)
+    # nchild.addMetaData(self._child.getMetaData())
+    # return self.setChild(nchild)
 
     def fold(self):
         return self
@@ -722,6 +777,13 @@ class VariableNode(VariableNameNode):
 
     def getType(self):
         return ""
+
+    def getLLVMType(self):
+        return None
+
+    def getSize(self):
+        sys.stderr.write("size of abstract variable node asked, returned 0\n")
+        return 0
 
 
 class FunctionNode(AbsNode):
@@ -747,8 +809,14 @@ class VariableIntNode(VariableNode):
     def __init__(self):
         super().__init__()
 
+    def getLLVMType(self):
+        return i32
+
     def getType(self):
-        return "int"
+        return "i32"
+
+    def getSize(self):
+        return 4
 
 
 class VariableFloatNode(VariableNode):
@@ -756,9 +824,11 @@ class VariableFloatNode(VariableNode):
     def __init__(self):
         super().__init__()
 
+    def getLLVMType(self):
+        return cfloat
+
     def getType(self):
         return "float"
-
 
 
 class VariableCharNode(VariableNode):
@@ -766,8 +836,12 @@ class VariableCharNode(VariableNode):
     def __init__(self):
         super().__init__()
 
+    def getLLVMType(self):
+        return cchar
+
     def getType(self):
         return "char"
+
 
 class RefNode(AbsNode):
     child: VariableNode
@@ -775,7 +849,7 @@ class RefNode(AbsNode):
     def getChildren(self):
         return [self.child]
 
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
         self.child.setParent(self)
 
@@ -787,6 +861,7 @@ class RefNode(AbsNode):
         self.child.toDot(dot)
         dot.edge(str(id(self)), str(id(self.child)))
         return dot
+
     def preOrderTraversal(self, string: str, oneline=True, indent=0):
         if oneline:
             string += self.toString() + ","
@@ -800,6 +875,7 @@ class RefNode(AbsNode):
             for child in self.getChildren():
                 string = child.preOrderTraversal(string, oneline, indent + 1)
         return string
+
     def setChild(self, child, index: int = 0):
         self.child = child
         self.child.setParent(self)
@@ -809,8 +885,11 @@ class RefNode(AbsNode):
 
 
 class AssNode(BinOpNode):
-
     lhs: VariableNode
+
+    def solveTypes(self):
+        self.type = type(self.lhs)
+        AbsNode.solveTypes(self)
 
     def __init__(self):
         super().__init__()
@@ -836,11 +915,11 @@ class PointerNode(VariableNode):
     point_to_type: type
     _name = None
 
-
-    def checkParent(self,parent):
+    def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
             c.checkParent(self)
+
     def __init__(self, child: TermNode or VariableNode):
         super().__init__()
         self.point_to_type = type(child)
@@ -866,7 +945,6 @@ class PointerNode(VariableNode):
     def getChildren(self):
         return [self._child]
 
-    def convertNode(self):
-        # nchild = self._convertfunction()
-        # nchild.addMetaData(self._child.getMetaData())
-        return self
+    @staticmethod
+    def convertNode(child):
+        pass

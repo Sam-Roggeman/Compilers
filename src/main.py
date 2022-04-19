@@ -24,12 +24,13 @@ def main(argv):
     visitor = CGrammar2VisitorImplementation()
     a = AST(root=visitor.visitStartRule(ctx=tree),name=name,symbol_table= visitor.getSymbolTable())
 
-    # a = AST(tree=tree, name=name)
     print("#PreOrder before optimize")
     print(a.preOrderTraversal(oneline=True))
-    a.optimize()
+    a.toDot(name="start")
+
     print("#Preorder after optimalizations")
     print(a.preOrderTraversal(oneline=True))
+    a.exportToLLVM()
 
 
 if __name__ == '__main__':

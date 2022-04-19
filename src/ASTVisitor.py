@@ -1,6 +1,5 @@
-from SymbolTable import *
 from Nodes import *
-from copy import deepcopy
+from SymbolTable import *
 
 
 class AbsASTVisitor:
@@ -20,9 +19,39 @@ class AbsASTVisitor:
         elif isinstance(ctx, AssNode):
             return self.visitAssNode(ctx)
         elif isinstance(ctx, BinOpNode):
-            return self.visitBinOpNode(ctx)
+            if isinstance(ctx, BinPlusNode):
+                return self.visitBinPlusNode(ctx)
+            elif isinstance(ctx,BinOrNode):
+                return self.visitBinOrNode(ctx)
+            elif isinstance(ctx,BinAndNode):
+                return self.visitBinAndNode(ctx)
+            elif isinstance(ctx,BinNENode):
+                return self.visitBinNENode(ctx)
+            elif isinstance(ctx,BinEQNode):
+                return self.visitBinEQNode(ctx)
+            elif isinstance(ctx,BinDisNode):
+                return self.visitBinDisNode(ctx)
+            elif isinstance(ctx,BinModNode):
+                return self.visitBinModNode(ctx)
+            elif isinstance(ctx,BinMulNode):
+                return self.visitBinMulNode(ctx)
+            elif isinstance(ctx,BinMinNode):
+                return self.visitBinMinNode(ctx)
+            elif isinstance(ctx,BinGTENode):
+                return self.visitBinGTENode(ctx)
+            elif isinstance(ctx,BinGTNode):
+                return self.visitBinGTNode(ctx)
+            elif isinstance(ctx,BinLTNode):
+                return self.visitBinLTNode(ctx)
+            elif isinstance(ctx,BinLTENode):
+                return self.visitBinLTENode(ctx)
         elif isinstance(ctx, VariableNode):
-            return self.visitVariableNode(ctx)
+            if isinstance(ctx, VariableIntNode):
+                return self.visitVariableIntNode(ctx)
+            elif isinstance(ctx, VariableFloatNode):
+                return self.visitVariableFloatNode(ctx)
+            elif isinstance(ctx, VariableCharNode):
+                return self.visitVariableCharNode(ctx)
         elif isinstance(ctx, VariableNameNode):
             return self.visitVariableNameNode(ctx)
         elif isinstance(ctx, FunctionNode):
@@ -34,6 +63,15 @@ class AbsASTVisitor:
 
         elif isinstance(ctx, RefNode):
             return self.visitRefNode(ctx)
+
+    def visitVariableFloatNode(self, ctx):
+        pass
+
+    def visitVariableCharNode(self, ctx):
+        pass
+
+    def visitVariableIntNode(self, ctx):
+        pass
 
     def visitChildren(self, ctx):
         for child in ctx.getChildren():
@@ -73,10 +111,49 @@ class AbsASTVisitor:
     def visitPointerNode(self, ctx):
         pass
 
+    def visitBinLTENode(self, ctx):
+        pass
+
+    def visitBinPlusNode(self, ctx):
+        pass
+
+    def visitBinAndNode(self, ctx):
+        pass
+
+    def visitBinOrNode(self, ctx):
+        pass
+
+    def visitBinEQNode(self, ctx):
+        pass
+
+    def visitBinModNode(self, ctx):
+        pass
+
+    def visitBinDisNode(self, ctx):
+        pass
+
+    def visitBinMinNode(self, ctx):
+        pass
+
+    def visitBinGTNode(self, ctx):
+        pass
+
+    def visitBinGTENode(self, ctx):
+        pass
+
+    def visitBinNENode(self, ctx):
+        pass
+
+    def visitBinMulNode(self, ctx):
+        pass
+
+    def visitBinLTNode(self, ctx):
+        pass
+
 
 class ASTConstVisitor(AbsASTVisitor):
 
-    def default(self,ctx):
+    def default(self, ctx):
         for index in range(len(ctx.getChildren())):
             ctx.setChild(self.visit(ctx.getChildren()[index]), index)
 
@@ -108,6 +185,15 @@ class ASTConstVisitor(AbsASTVisitor):
         else:
             return ctx
 
+    def visitVariableFloatNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
+    def visitVariableCharNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
+    def visitVariableIntNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
     def visitFunctionNode(self, ctx):
         return self.default(ctx)
 
@@ -122,8 +208,44 @@ class ASTConstVisitor(AbsASTVisitor):
 
     def visitPointerNode(self, ctx):
         return self.default(ctx)
+    def visitBinLTENode(self, ctx):
+        return self.visitBinOpNode(ctx)
 
+    def visitBinPlusNode(self, ctx):
+        return self.visitBinOpNode(ctx)
 
+    def visitBinAndNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinOrNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinEQNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinModNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinDisNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinMinNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinGTNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinGTENode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinNENode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinMulNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinLTNode(self, ctx):
+        return self.visitBinOpNode(ctx)
 
 class removeUnUsed(AbsASTVisitor):
     def visitProgramNode(self, ctx):
@@ -146,6 +268,15 @@ class removeUnUsed(AbsASTVisitor):
         if node:
             return node.isUnUsed()
 
+    def visitVariableFloatNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
+    def visitVariableCharNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
+    def visitVariableIntNode(self, ctx):
+        return self.visitVariableNode(ctx)
+
     #     else exception todo
 
     def visitVariableNode(self, ctx):
@@ -165,3 +296,41 @@ class removeUnUsed(AbsASTVisitor):
 
     def visitPointerNode(self, ctx):
         return False
+    def visitBinLTENode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinPlusNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinAndNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinOrNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinEQNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinModNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinDisNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinMinNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinGTNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinGTENode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinNENode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinMulNode(self, ctx):
+        return self.visitBinOpNode(ctx)
+
+    def visitBinLTNode(self, ctx):
+        return self.visitBinOpNode(ctx)

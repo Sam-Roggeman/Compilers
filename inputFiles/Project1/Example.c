@@ -1,3 +1,4 @@
 int a = 1;
 int b = 2;
-int c = a+b;
+float d = a+1;
+//int c = a+b;

@@ -136,12 +136,10 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
         node2 = None
         # todo error report
         name = ctx.variable()[0].getText()
-
-        node1 = VariableNameNode()
-        node1.setName(name=name)
+        node1 = copy.deepcopy(self._symbol_table.getVar(varname=ctx.getText()))
         # Node2
         node2 = self.visit(ctx.rvalue())
-
+        self._symbol_table.setValue(name,node2)
         assinmentNode = AssNode()
         assinmentNode.setChild(node1,0)
         assinmentNode.setChild(node2,1)
@@ -242,8 +240,8 @@ class CGrammar2VisitorImplementation(CGrammar2Visitor):
     # Visit a parse tree produced by CGrammar2Parser#variable.
     def visitVariable(self, ctx: CGrammar2Parser.VariableContext):
         # print("visitVariable")
-        node = VariableNameNode()
-        node.setName(ctx.getText())
+        node = copy.deepcopy(self._symbol_table.getVar(varname=ctx.getText()))
+
         return node
 
     # Visit a parse tree produced by CGrammar2Parser#types_specifier.
