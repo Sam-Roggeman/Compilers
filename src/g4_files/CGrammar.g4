@@ -5,7 +5,7 @@ startRule
     ;
 
 file
-    : ((expr SEMICOL) | (statement))*
+    : ((expr SEMICOL) | (statement) | (function SEMICOL))*
     ;
 
 expr
@@ -15,6 +15,7 @@ expr
     | declaration_assignment
     | reference
     | variable
+    | string
     | BREAK
     | CONTINUE
     ;
@@ -28,10 +29,13 @@ statement
 rvalue: mathExpr| variable ;
 function: printf;
 
+string: STRING ~('"')* STRING;
+array: (LSBR expr RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
 elsestatement: ELSE LCBR file RCBR;
 whilestatement: WHILE LBR expr RBR LCBR file RCBR;
 forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR file RCBR;
+
 
 declaration: (CONST)? types_specifier variable;
 declaration_assignment
@@ -74,14 +78,16 @@ unOp: PLUS|MIN|NOT;
 logOp: AND|OR;
 mul: MUL;
 deref: MUL;
-variable: VarName;
+variable: VarName|array;
 
 
 types_specifier: CHARTYPE|FLOATTYPE|INTTYPE;
 literal: INTLit|FLOATLit|CHARLit;
 const_qualifier: CONST;
-printf: 'printf' '(' (variable | literal) ')';
 
+printf: 'printf' LBR (arguments?) RBR;
+arguments: arg (COMMA arg)*;
+arg: (variable | literal | string| mathExpr);
 
 //types_specifiers
 CHARTYPE: 'char';
@@ -97,6 +103,7 @@ CHARLit: ['].['];
 CONST: 'const';
 
 //binops
+COMMA:',';
 EQ:'==';
 MUL:'*';
 MIN:'-';
@@ -109,6 +116,8 @@ LBR: '(';
 RBR: ')';
 LCBR: '{';
 RCBR: '}';
+LSBR: '[';
+RSBR: ']';
 AND: '&&';
 OR: '||';
 NOT: '!';
@@ -122,10 +131,11 @@ WHILE: 'while';
 FOR: 'for';
 BREAK: 'break';
 CONTINUE: 'continue';
-RETURN: 'return';
 VOID: 'void';
 //semicolon
 SEMICOL: ';';
+STRING: '"';
+
 
 REF: '&';
 
@@ -137,3 +147,7 @@ LINE_COMMENT
 BlockComment: '/*' .*? '*/' -> skip;
 Comment: '//' ~[\n]* -> skip;
 WS: [ \n\t\r]+ -> skip;
+Hashtag: '#' ~[\n]* -> skip;
+Main: 'int main(){' -> skip;
+RETURN: 'return' ~[\n]* ->skip;
+CLOSINGBRACKET: '}' EOF ->skip;

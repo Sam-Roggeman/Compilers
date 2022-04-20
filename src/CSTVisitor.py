@@ -267,7 +267,36 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     # Visit a parse tree produced by CGrammarParser#printf.
     def visitPrintf(self, ctx: CGrammarParser.PrintfContext):
         # print("visitPrintf")
+        node = PrintfNode()
+        c = ctx.arguments()
+        astchild = self.visit(c)
+        node.addArgument(astchild)
+        return node
+
+    def visitArguments(self, ctx:CGrammarParser.ArgumentsContext):
+        node = ArgumentsNode()
+        children = ctx.arg()
+        for c in children:
+            astchild = self.visit(c)
+            node.addChild(astchild)
+        return node
+
+    def visitArg(self, ctx:CGrammarParser.ArgContext):
         return self.visitChildren(ctx)
+
+    def visitString(self, ctx:CGrammarParser.StringContext):
+        node = StringNode()
+        pointernode = PointerNode(node)
+        node.setParent(pointernode)
+        for c in ctx.getChildren():
+            if c.getText() != '"':
+                node.setNext(StringNode())
+                node.setValue(c.getText())
+                node.getNext().setParent(node)
+                node = node.getNext()
+        node = node.parent
+        node.setNext(None)
+        return pointernode
 
     def visitFile(self, ctx: CGrammarParser.FileContext):
         node1 = CodeblockNode()
@@ -328,6 +357,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
+
 
     # def findNode(self, name: str):
     #     deref_count = 0

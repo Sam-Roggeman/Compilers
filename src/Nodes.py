@@ -422,22 +422,92 @@ class VariableNode(VariableNameNode):
 
 class FunctionNode(AbsNode):
     functionName: str
-    parameters: list
 
-    def __init__(self, name, parameters):
+
+    def __init__(self, name):
         super().__init__()
         self.functionName = name
-        self.parameters = parameters
+        self.argument = None
+
+    def addArgument(self,child):
+        self.argument = child
+
+    def getChildren(self):
+        return [self.argument]
 
 
 class PrintfNode(FunctionNode):
 
-    def __init__(self, parameters):
-        super().__init__("printf", parameters)
+    def __init__(self):
+        super().__init__("printf")
 
     def toString(self):
-        return "printf(" + str(self.parameters[0]) + ")"
+        return "printf"
 
+    def checkParent(self, parent=None):
+        if parent:
+            self.parent = parent
+            for c in self.getChildren():
+                c.checkParent(self)
+
+
+class ArgumentsNode(AbsNode):
+
+    def __init__(self):
+        super().__init__("Arguments")
+        self.children = []
+
+    def addChild(self,child):
+        self.children.append(child)
+
+    def checkParent(self, parent=None):
+        if parent:
+            self.parent = parent
+        for c in self.getChildren():
+            c.setParent(self)
+
+    def getChildren(self):
+        return self.children
+
+    def toString(self):
+        return "Arguments"
+
+class ArrayNode(AbsNode):
+    def __init__(self):
+        super().__init__()
+        self.next = None
+        self.value = None
+        self.type = None
+
+    def setNext(self,next):
+        self.next = next
+
+    def setValue(self,value):
+        self.value = value
+
+    def setType(self,type):
+        self.type = type
+
+    def setParent(self, parent):
+        self.parent = parent
+
+    def getNext(self):
+        return self.next
+
+    def getChildren(self):
+        if self.next:
+            return [self.next]
+        else:
+            return []
+
+class StringNode(ArrayNode):
+
+    def __init__(self):
+        super().__init__()
+        self.type = 'char'
+
+    def toString(self):
+        return self.value
 
 class VariableIntNode(VariableNode):
     def __init__(self):
@@ -1036,7 +1106,7 @@ class PointerNode(VariableNode):
         self.pointTo(child)
         self._child.setParent(self)
 
-    def pointTo(self, child: TermNode or VariableNode):
+    def pointTo(self, child: TermNode or VariableNode or StringNode):
         if type(child) == self.point_to_type:
             self._child = child
 
