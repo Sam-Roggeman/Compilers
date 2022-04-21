@@ -29,7 +29,6 @@ statement
 rvalue: mathExpr| variable ;
 function: printf;
 
-string: STRING ~('"')* STRING;
 array: (LSBR expr RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
 elsestatement: ELSE LCBR file RCBR;
@@ -87,8 +86,8 @@ const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
-arg: (variable | literal | string| mathExpr);
-
+arg: ( string | variable | literal | mathExpr);
+string: STRING;
 //types_specifiers
 CHARTYPE: 'char';
 FLOATTYPE: 'float';
@@ -134,7 +133,8 @@ CONTINUE: 'continue';
 VOID: 'void';
 //semicolon
 SEMICOL: ';';
-STRING: '"';
+STRING: '"' ~('"')* '"';
+
 
 
 REF: '&';
