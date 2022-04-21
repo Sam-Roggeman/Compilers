@@ -118,6 +118,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             child.setRvalue()
             node2.setChild(child)
             node2.setRvalue()
+        elif ctx.functioncall():
+            node2 = self.visit(ctx.functioncall())
 
         self.symbol_table.setValue(name, node2)
         assinmentNode = AssNode()
@@ -325,14 +327,14 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node = IfstatementNode()
         child = self.visit(ctx.expr())
         condition.addChild(child)
-        codeblock = self.visit(ctx.file())
+        codeblock = self.visit(ctx.body())
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
 
     def visitElsestatement(self, ctx: CGrammarParser.ElsestatementContext):
         node = ElsestatementNode()
-        codeblock = self.visit(ctx.file())
+        codeblock = self.visit(ctx.body())
         node.setBlock(codeblock)
         return node
 
@@ -341,7 +343,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node = WhilestatementNode()
         child = self.visit(ctx.expr())
         condition.addChild(child)
-        codeblock = self.visit(ctx.file())
+        codeblock = self.visit(ctx.body())
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
@@ -353,11 +355,80 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         for c in range(len(expressions)):
             expr = self.visit(ctx.expr(c))
             condition.addChild(expr)
-        codeblock = self.visit(ctx.file())
+        codeblock = self.visit(ctx.body())
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
 
+    def visitBody(self, ctx:CGrammarParser.BodyContext):
+        node1 = CodeblockNode()
+        if self.symbol_table:
+            self.symbol_table.addChild(node1.getSymbolTable())
+        self.symbol_table = node1.getSymbolTable()
+        for c in ctx.getChildren():
+            astchild = self.visit(c)
+            if c.getText() == "break":
+                astchild = BreakNode()
+                astchild.setParent(node1)
+                node1.addchild(astchild)
+            if c.getText() == "continue":
+                astchild = ContinueNode()
+                astchild.setParent(node1)
+                node1.addchild(astchild)
+            if astchild:
+                node1.addchild(astchild)
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+        return node1
+
+    def visitFunctiondefinition(self, ctx:CGrammarParser.FunctiondefinitionContext):
+        _type = ctx.getChild(0).getText()
+        _name = ctx.getChild(1).getText()
+        _arguments = ctx.arguments()
+        node = FunctionDefinition(_name, _type)
+        if self.symbol_table:
+            self.symbol_table.addChild(node.getSymbolTable())
+        self.symbol_table = node.getSymbolTable()
+        if _arguments:
+            self.visit(_arguments)
+            node.addArgument(_arguments)
+        c = ctx.functionbody()
+        body = self.visit(c)
+        node.setFunctionbody(body)
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+        return node
+    def visitFunctionbody(self, ctx:CGrammarParser.FunctionbodyContext):
+        node = FunctionBody()
+        _return = ReturnNode()
+        ret = False
+        for c in ctx.getChildren():
+            astchild = self.visit(c)
+            if c.getText() == "return":
+                node.addBody(_return)
+                ret = True
+            elif ret and astchild:
+                _return.setChild(astchild)
+            elif astchild:
+                node.addBody(astchild)
+        return node
+
+    def visitFunctioncall(self, ctx:CGrammarParser.FunctioncallContext):
+        name = ctx.getChild(0).getText()
+        arguments = ctx.arguments()
+        node = FunctionCall(name)
+        node.addArgument(self.visit(arguments))
+        return node
+
+    def visitInclude(self, ctx:CGrammarParser.IncludeContext):
+        node = IncludeNode()
+        node.setLibrary(self.visit(ctx.library()))
+        return node
+
+    def visitLibrary(self, ctx:CGrammarParser.LibraryContext):
+        name = ctx.getText()
+        node = LibraryNode(name)
+        return node
 
     # def findNode(self, name: str):
     #     deref_count = 0

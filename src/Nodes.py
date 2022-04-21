@@ -435,6 +435,82 @@ class FunctionNode(AbsNode):
     def getChildren(self):
         return [self.argument]
 
+class FunctionCall(FunctionNode):
+    def __init__(self,name):
+        super().__init__(name)
+
+    def toString(self):
+        return "Functioncall" + " " +  self.functionName
+
+class FunctionDefinition(FunctionNode):
+
+    def __init__(self,name,type):
+        super().__init__(name)
+        self.functionbody = None
+        self.type = type
+        self.symbol_table = SymbolTable()
+
+    def getSymbolTable(self):
+        return self.symbol_table
+
+    def setSymbolTabel(self, symboltable):
+        self.symbol_table = symboltable
+
+    def setFunctionbody(self,body):
+        self.functionbody = body
+
+    def checkParent(self,parent):
+        self.parent = parent
+        if self.argument:
+            self.argument.checkParent(self)
+        if self.functionbody:
+            self.functionbody.checkParent(self)
+
+    def toString(self):
+        return self.type + " " + self.functionName
+
+    def getChildren(self):
+        if not self.argument and self.functionbody:
+            return [ self.functionbody]
+        elif not self.functionbody and self.argument:
+            return [self.argument]
+        elif not self.functionbody and not self.argument:
+            return []
+        else:
+            return [self.argument,self.functionbody]
+
+class FunctionBody(AbsNode):
+    def __init__(self):
+        super().__init__("FunctionBody")
+        self.body = []
+
+    def toString(self):
+        return "functionbody"
+
+    def checkParent(self,parent):
+        self.parent = parent
+        for c in self.body:
+            c.setParent(self)
+
+    def addBody(self,body):
+        self.body.append(body)
+
+    def getChildren(self):
+        return self.body
+
+class ReturnNode(AbsNode):
+    def __init__(self):
+        super().__init__("return")
+        self.child = None
+
+    def getChildren(self):
+        return [self.child]
+
+    def toString(self):
+        return "return"
+
+    def setChild(self, child, index: int = 0):
+        self.child = child
 
 class PrintfNode(FunctionNode):
 
@@ -1248,3 +1324,32 @@ class BreakNode(TermNode):
 class ContinueNode(TermNode):
     def __init__(self):
         super().__init__("continue")
+
+class IncludeNode(AbsNode):
+    def __init__(self):
+        super().__init__("include")
+        self.library = None
+
+    def setLibrary(self,library):
+        self.library = library
+
+    def getChildren(self):
+        return [self.library]
+
+    def checkParent(self,parent):
+        self.parent = parent
+        self.library.setParent(self)
+
+    def toString(self):
+        return "#include"
+
+class LibraryNode(AbsNode):
+    def __init__(self,name):
+        super().__init__(name)
+        self.name = name
+
+    def setParent(self, parent):
+        self.parent = parent
+
+    def toString(self):
+        return self.name

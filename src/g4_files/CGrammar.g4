@@ -5,8 +5,11 @@ startRule
     ;
 
 file
-    : ((expr SEMICOL) | (statement) | (function SEMICOL))*
+    : (include)* ((expr SEMICOL) | (statement) | (function))*
     ;
+
+body
+    : ((functioncall SEMICOL) |(expr SEMICOL) | (statement)  | (printf SEMICOL))*  (BREAK SEMICOL | CONTINUE SEMICOL)?;
 
 expr
     : mathExpr
@@ -16,8 +19,6 @@ expr
     | reference
     | variable
     | string
-    | BREAK
-    | CONTINUE
     ;
 
 statement
@@ -27,18 +28,27 @@ statement
     ;
 
 rvalue: mathExpr| variable ;
-function: printf;
+
+include: INCLUDE library;
+library: '<' VarName '.' 'h' '>';
+
+function: printf SEMICOL | functiondefinition | functioncall SEMICOL;
+functiondefinition: (types_specifier | VOID) VarName LBR (arguments?) RBR LCBR functionbody RCBR;
+functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal) SEMICOL)?;
+functioncall: VarName LBR (arguments)? RBR;
+
 
 array: (LSBR expr RSBR)+;
-ifstatement: IF LBR expr  RBR LCBR file (RETURN rvalue)? RCBR;
-elsestatement: ELSE LCBR file RCBR;
-whilestatement: WHILE LBR expr RBR LCBR file RCBR;
-forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR file RCBR;
+ifstatement: IF LBR expr  RBR LCBR (body) RCBR;
+elsestatement: ELSE LCBR (body) RCBR;
+whilestatement: WHILE LBR expr RBR LCBR (body) RCBR;
+forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR (body) RCBR;
 
 
 declaration: (CONST)? types_specifier variable;
 declaration_assignment
     : (CONST)? types_specifier variable ASS rvalue
+    |(CONST)? types_specifier variable ASS functioncall
     | (CONST)? pointertype variable ASS (REF)* variable
     ;
 assignment
@@ -138,7 +148,7 @@ STRING: '"' ~('"')* '"';
 
 
 REF: '&';
-
+RETURN: 'return';
 VarName: [A-Za-z_] [A-Za-z_0-9]*;
 
 LINE_COMMENT
@@ -147,7 +157,5 @@ LINE_COMMENT
 BlockComment: '/*' .*? '*/' -> skip;
 Comment: '//' ~[\n]* -> skip;
 WS: [ \n\t\r]+ -> skip;
-Hashtag: '#' ~[\n]* -> skip;
-Main: 'int main(){' -> skip;
-RETURN: 'return' ~[\n]* ->skip;
-CLOSINGBRACKET: '}' EOF ->skip;
+
+INCLUDE: '#include';
