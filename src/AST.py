@@ -18,8 +18,9 @@ class AST:
         self._root = root
         self._symbol_table = self._root.getSymbolTable()
         self._root.solveTypes()
+        self.toDot(name="AST")
+
         self.optimize()
-        print("a")
 
     # def __init__(self, tree, name=None):
     #     self._name = name
@@ -37,7 +38,7 @@ class AST:
         return
 
     def fold(self):
-        self._root.fold()
+        self._root = self._root.fold()
 
     def preOrderTraversal(self, oneline=True):
         string = ""
@@ -63,25 +64,13 @@ class AST:
         for index in range(len(children)):
             self.replaceConst(children[curr_node])
 
-    def checkUsage(self):
-        pass
-        # for keys in lhs.keys():
-        #     if rhs[keys] != 0 and lhs[keys] == 0:
-        #         pass
-        #
-        #     elif lhs[keys] == 1 and rhs[keys] != 0:
-        #         self._symbol_table.makeConst(keys)
-
     def optimize(self):
         self._root.checkParent()
         ASTUsageVisitor(ctx=self._root, symbol_table=self._root.symbol_table)
-        # removeUnUsed(self.getRoot(),self.getSymbolTable(()))
         # ASTConstVisitor(self.getRoot(), self.getSymbolTable(()))
-        # self._symbol_table.reIndex()
-        # self.toDot(name="after_const")
         self._symbol_table.setConst()
         self.fold()
-        self.toDot(name="end")
+        self.toDot(name="Optimized")
 
     def getRoot(self):
         return self._root
@@ -89,5 +78,5 @@ class AST:
     def getSymbolTable(self, param):
         return self._symbol_table
 
-    def exportToLLVM(self):
-        llvmVisitor(self._root, self._symbol_table, "./output/" + self._name + "/" + "output.llvm")
+    def exportToLLVM(self, run=False):
+        llvmVisitor(self._root, self._symbol_table, "./output/" + self._name + "/" + "output.llvm",run=run)

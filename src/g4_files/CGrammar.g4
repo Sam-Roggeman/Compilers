@@ -95,8 +95,8 @@ INTTYPE: 'int';
 
 //literal
 INTLit: '0' | [1-9] [0-9]*;
-FLOATLit: [0-9]+[.][0-9]+[f];
-CHARLit: ['].['];
+FLOATLit: [0-9]+[.][0-9]+[f]?;
+CHARLit: [']SingleChar['];
 
 //const_qualifier
 CONST: 'const';
@@ -133,7 +133,7 @@ CONTINUE: 'continue';
 VOID: 'void';
 //semicolon
 SEMICOL: ';';
-STRING: '"' ~('"')* '"';
+STRING: '"' SingleChar* '"';
 
 
 
@@ -151,3 +151,5 @@ Hashtag: '#' ~[\n]* -> skip;
 Main: 'int main(){' -> skip;
 RETURN: 'return' ~[\n]* ->skip;
 CLOSINGBRACKET: '}' EOF ->skip;
+fragment ESC      : '\\' . ;
+fragment SingleChar : ~('"'| '\\') | ESC ;

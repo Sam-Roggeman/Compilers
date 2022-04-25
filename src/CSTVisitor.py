@@ -255,7 +255,11 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if ctx.INTLit():
             return TermIntNode(int(ctx.INTLit().getText()))
         elif ctx.FLOATLit():
-            return TermFloatNode(float(ctx.FLOATLit().getText()[:-1]))
+            value = ctx.FLOATLit().getText()
+            floatex = value[-1]
+            if floatex == 'f':
+                return TermFloatNode(float(value[:-1]))
+            return TermFloatNode(float(value))
         elif ctx.CHARLit():
             return TermCharNode(ctx.CHARLit().getText()[1:-1])
 
@@ -273,7 +277,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.addArgument(astchild)
         return node
 
-    def visitArguments(self, ctx:CGrammarParser.ArgumentsContext):
+    def visitArguments(self, ctx: CGrammarParser.ArgumentsContext):
         node = ArgumentsNode()
         children = ctx.arg()
         for c in children:
@@ -281,21 +285,34 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             node.addChild(astchild)
         return node
 
-    def visitArg(self, ctx:CGrammarParser.ArgContext):
+    def visitArg(self, ctx: CGrammarParser.ArgContext):
         return self.visitChildren(ctx)
 
-    def visitString(self, ctx:CGrammarParser.StringContext):
+    def visitString(self, ctx: CGrammarParser.StringContext):
         node = StringNode()
         pointernode = PointerNode(node)
+        firstnode = node
         node.setParent(pointernode)
-        for c in ctx.getChildren():
-            if c.getText() != '"':
+        string = ctx.getText()
+        escaped = False
+        for char in string:
+            if char != '"':
+                if char == '\\' and not escaped:
+                    escaped = True
+                    temp = char
+                    continue
+                if escaped:
+                    char = bytes("\\" + char, "utf-8").decode("unicode_escape")
+
+
                 node.setNext(StringNode())
-                node.setValue(c.getText())
+                node.setValue(char)
                 node.getNext().setParent(node)
                 node = node.getNext()
+                escaped = False
         node = node.parent
         node.setNext(None)
+        a = firstnode.getFullString()
         return pointernode
 
     def visitFile(self, ctx: CGrammarParser.FileContext):
@@ -357,7 +374,6 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.setCondition(condition)
         node.setBlock(codeblock)
         return node
-
 
     # def findNode(self, name: str):
     #     deref_count = 0

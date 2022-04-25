@@ -6,7 +6,7 @@ class VariableEntry(object):
     type: type
     node: VariableNode
     value: TermNode
-    register: str
+    register= None
     lhscounter: int
     rhscounter: int
 

@@ -4,21 +4,24 @@ from Errors import *
 from llvmlite import ir
 
 # Create some useful types
-cfloat = ir.FloatType()
+cfloat = ir.DoubleType()
 i32 = ir.IntType(32)
 cchar = ir.IntType(8)
+cbool = ir.IntType(1)
 
 
 class TermNode: pass
 
 
 def richest(node1: type, node2: type):
-    if node1 == TermFloatNode or node2 == TermFloatNode:
-        return TermFloatNode
-    if node1 == TermIntNode or node2 == TermIntNode:
-        return TermIntNode
-    if node1 == TermCharNode or node2 == TermCharNode:
-        return TermCharNode
+    types = [
+        TermFloatNode,
+        TermIntNode,
+        TermCharNode
+    ]
+    for t in types:
+        if t == node1 or t == node2:
+            return t
 
 
 class AbsNode:
@@ -29,7 +32,11 @@ class AbsNode:
     def isRvalue(self):
         return self.rvalue
 
-    def countUsages(self, rhcounter: [str, int] = dict(), lhcounter: [str, int] = dict()):
+    def countUsages(self, rhcounter=None, lhcounter=None):
+        if lhcounter is None:
+            lhcounter = dict()
+        if rhcounter is None:
+            rhcounter = dict()
         children = self.getChildren()
         for index in range(len(children)):
             lhcounter, rhcounter = children[index].countUsages(lhcounter=lhcounter, rhcounter=rhcounter)
@@ -126,6 +133,13 @@ class AbsNode:
 
 
 class TermNode(AbsNode):
+    def getSolvedType(self) -> type:
+        return type(self)
+
+    @staticmethod
+    def getLLVMType():
+        pass
+
     def checkParent(self, parent):
         if not self.parent:
             self.setParent(parent)
@@ -134,7 +148,8 @@ class TermNode(AbsNode):
         return str(self.value)
 
     def setValue(self, value):
-        self.value = value
+        if value:
+            self.value = value
 
     def getValue(self):
         return self
@@ -143,10 +158,16 @@ class TermNode(AbsNode):
     def convertNode(child):
         return child
 
-    def __init__(self, value):
+    def __init__(self, value=None):
         super().__init__()
-        self.value = value
+        self.value = None
+        self.setValue(value)
         self._lvalue = False
+
+    def __invert__(self):
+        if self.value:
+            return TermIntNode(1)
+        return TermIntNode(0)
 
     def __add__(self, other):
         # richest_type = richest(type(self),type(other))
@@ -210,13 +231,15 @@ class TermNode(AbsNode):
 
     def __and__(self, other):
         other = self.convertNode(other)
-        self.setValue(self.value & other.value)
-        return self
+        if self.value and other.value:
+            return TermIntNode(1)
+        return TermIntNode(0)
 
     def __or__(self, other):
         other = self.convertNode(other)
-        self.setValue(self.value | other.value)
-        return self
+        if self.value or other.value:
+            return TermIntNode(1)
+        return TermIntNode(0)
 
     # def __bool__(self):
     #     return self.value == 0
@@ -225,7 +248,7 @@ class TermNode(AbsNode):
         return self
 
     def llvmValue(self):
-        return ir.Constant(i32, self.value)
+        pass
 
 
 class TermIntNode(TermNode):
@@ -234,15 +257,24 @@ class TermIntNode(TermNode):
         self.setValue(self.value // other.value)
         return self
 
+    def llvmValue(self):
+        return ir.Constant(i32, self.value)
+
     def __init__(self, value: int = None):
-        super().__init__(value)
+        super().__init__()
+        self.setValue(value)
 
-    def setValue(self, _value: int):
-        _value = int(_value)
-        super().setValue(_value)
-
+    def setValue(self, value: int):
+        if value is not None:
+            if isinstance(value, bool):
+                if value:
+                    self.value = 1
+                    return
+                self.value = 0
+                return
+            self.value = int(value)
     def toString(self):
-        return str(self.value)
+        return "i32" + str(self.value)
 
     @staticmethod
     def convertNode(child: TermNode):
@@ -260,8 +292,14 @@ class TermIntNode(TermNode):
             return nchild
         return child
 
+    @staticmethod
+    def getLLVMType():
+        return i32
+
 
 class TermFloatNode(TermNode):
+    def llvmValue(self):
+        return ir.Constant(cfloat, self.value)
 
     def __init__(self, value: float = None):
         super().__init__(value)
@@ -272,7 +310,7 @@ class TermFloatNode(TermNode):
         super().setValue(_value)
 
     def toString(self):
-        return str(self.value)
+        return "cfloat" + str(self.value)
 
     @staticmethod
     def convertNode(child: TermNode):
@@ -289,8 +327,20 @@ class TermFloatNode(TermNode):
             return nchild
         return child
 
+    @staticmethod
+    def getLLVMType():
+        return cfloat
+
 
 class TermCharNode(TermNode):
+    @staticmethod
+    def getLLVMType():
+        return cchar
+
+    def llvmValue(self):
+        intvalue = ord(self.value)
+
+        return ir.Constant(cchar, intvalue)
 
     def setValue(self, _value: str):
         _value = str(_value)
@@ -302,7 +352,7 @@ class TermCharNode(TermNode):
         super().__init__(value)
 
     def toString(self):
-        return str(self.value)
+        return "cchar" + str(self.value)
 
     def fold(self):
         return self
@@ -372,7 +422,6 @@ class VariableNameNode(AbsNode):
 
 
 class VariableNode(VariableNameNode):
-
     def __str__(self):
         return super().__str__()
 
@@ -391,11 +440,6 @@ class VariableNode(VariableNameNode):
     def isUnUsed(self):
         return self.no_use
 
-    # def convertNode(self):
-    # nchild = self._convertfunction(self._child)
-    # nchild.addMetaData(self._child.getMetaData())
-    # return self.setChild(nchild)
-
     def fold(self):
         return self
 
@@ -405,6 +449,9 @@ class VariableNode(VariableNameNode):
         self.const: bool = False
         self.no_use: bool = False
         self._convertfunction = None
+
+    def getSolvedType(self) -> type:
+        return None
 
     def toString(self):
         string = ""
@@ -419,21 +466,28 @@ class VariableNode(VariableNameNode):
     def getValue(self):
         return self
 
+    @staticmethod
+    def getLLVMType():
+        pass
+
 
 class FunctionNode(AbsNode):
     functionName: str
 
-
     def __init__(self, name):
         super().__init__()
         self.functionName = name
-        self.argument = None
+        self.argumentNode: ArgumentsNode = None
 
-    def addArgument(self,child):
-        self.argument = child
+    def addArgument(self, child):
+        self.argumentNode = child
 
     def getChildren(self):
-        return [self.argument]
+        return [self.argumentNode]
+
+    def fold(self):
+        self.argumentNode = self.argumentNode.fold()
+        return self
 
 
 class PrintfNode(FunctionNode):
@@ -457,7 +511,7 @@ class ArgumentsNode(AbsNode):
         super().__init__("Arguments")
         self.children = []
 
-    def addChild(self,child):
+    def addChild(self, child):
         self.children.append(child)
 
     def checkParent(self, parent=None):
@@ -472,6 +526,12 @@ class ArgumentsNode(AbsNode):
     def toString(self):
         return "Arguments"
 
+    def fold(self):
+        for index in range(len(self.children)):
+            self.children[index] = self.children[index].fold()
+        return self
+
+
 class ArrayNode(AbsNode):
     def __init__(self):
         super().__init__()
@@ -479,13 +539,13 @@ class ArrayNode(AbsNode):
         self.value = None
         self.type = None
 
-    def setNext(self,next):
+    def setNext(self, next):
         self.next = next
 
-    def setValue(self,value):
+    def setValue(self, value):
         self.value = value
 
-    def setType(self,type):
+    def setType(self, type):
         self.type = type
 
     def setParent(self, parent):
@@ -500,6 +560,7 @@ class ArrayNode(AbsNode):
         else:
             return []
 
+
 class StringNode(ArrayNode):
 
     def __init__(self):
@@ -509,11 +570,22 @@ class StringNode(ArrayNode):
     def toString(self):
         return self.value
 
+    def getFullString(self):
+        returnval = self.value
+        if self.next:
+            returnval += self.next.getFullString()
+        return returnval
+
+
 class VariableIntNode(VariableNode):
     def __init__(self):
         super().__init__()
 
-    def getLLVMType(self):
+    def getSolvedType(self) -> type:
+        return TermIntNode
+
+    @staticmethod
+    def getLLVMType():
         return i32
 
     def getType(self):
@@ -524,11 +596,17 @@ class VariableIntNode(VariableNode):
 
 
 class VariableFloatNode(VariableNode):
+    def getSolvedType(self) -> type:
+        return TermFloatNode
 
     def __init__(self):
         super().__init__()
 
-    def getLLVMType(self):
+    def getSize(self):
+        return 4
+
+    @staticmethod
+    def getLLVMType():
         return cfloat
 
     def getType(self):
@@ -536,11 +614,17 @@ class VariableFloatNode(VariableNode):
 
 
 class VariableCharNode(VariableNode):
+    def getSolvedType(self) -> type:
+        return TermCharNode
 
     def __init__(self):
         super().__init__()
 
-    def getLLVMType(self):
+    def getSize(self):
+        return 1
+
+    @staticmethod
+    def getLLVMType():
         return cchar
 
     def getType(self):
@@ -697,6 +781,7 @@ class CodeblockNode(AbsNode):
     def fold(self):
         for index in range(len(self.children)):
             self.children[index] = self.children[index].fold()
+        return self
 
 
 class ProgramNode(CodeblockNode):
@@ -767,9 +852,10 @@ class UnNotNode(UnOpNode):
     def fold(self):
         super().fold()
         if isinstance(self.rhs, TermNode):
-            return TermIntNode(not self.rhs.value)
-        else:
-            return self
+            if not self.rhs.value:
+                return TermIntNode(1)
+            return TermIntNode(0)
+        return self
 
 
 class BinOpNode(AbsNode):
@@ -777,9 +863,13 @@ class BinOpNode(AbsNode):
     rhs: TermNode
     type: type
 
+    def getSolvedType(self) -> type:
+        return self.type
+
     def solveTypes(self):
-        self.type = richest(type(self.lhs), type(self.rhs))
         AbsNode.solveTypes(self)
+
+        self.type = richest(self.lhs.getSolvedType(), self.rhs.getSolvedType())
 
     def checkParent(self, parent):
         self.setParent(parent)
@@ -814,6 +904,30 @@ class BinOpNode(AbsNode):
         self.rhs = self.rhs.fold()
         return self
 
+    def getLLVMType(self):
+        return self.type().getLLVMType()
+
+
+class TermBoolNode(TermNode):
+    def __init__(self):
+        super().__init__(False)
+
+    @staticmethod
+    def getLLVMType():
+        return cbool
+
+    def getSolvedType(self) -> type:
+        return TermBoolNode
+
+
+class BinLogOpNode(BinOpNode):
+    def __init__(self):
+        super(BinLogOpNode, self).__init__()
+        self.type = TermBoolNode
+
+    # def solveTypes(self):
+    #     AbsNode.solveTypes(self)
+
 
 class BinPlusNode(BinOpNode):
     def __init__(self):
@@ -831,6 +945,7 @@ class BinPlusNode(BinOpNode):
 
 
 class BinMinNode(BinOpNode):
+
     def __init__(self):
         super().__init__()
 
@@ -980,7 +1095,7 @@ class BinModNode(BinOpNode):
             return self
 
 
-class BinAndNode(BinOpNode):
+class BinAndNode(BinLogOpNode):
     def __init__(self):
         super().__init__()
 
@@ -1055,8 +1170,11 @@ class AssNode(BinOpNode):
     lhs: VariableNode
 
     def solveTypes(self):
-        self.type = type(self.lhs)
         AbsNode.solveTypes(self)
+        self.type = self.lhs.getSolvedType()
+        if isinstance(self.rhs, TermNode) and self.type != self.rhs.getSolvedType():
+            self.rhs = self.type(self.rhs.value)
+        return
 
     def __init__(self):
         super().__init__()
