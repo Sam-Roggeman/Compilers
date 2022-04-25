@@ -25,8 +25,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitMathExpr(self, ctx: CGrammarParser.MathExprContext):
         # print("visitMathExpr")
         count = ctx.getChildCount()
-        if ctx.ASS() and not ctx.getChild(0).variable():
-            raise RValueException()
+        # if ctx.ASS() and not ctx.getChild(0).variable():
+        #     raise RValueException()
         if count == 1:
             # literal or variable
             return self.visit(ctx.getChild(0))

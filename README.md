@@ -19,29 +19,46 @@ If the comparison fails, an errormessage will be displayed.
 
 
 #Features
-V: Working   
+A: Present in AST
+L: Runnable LLVM Code-Generation
+M: Runnable Mips Code-Generation
 X: Not working or not implemented
 
 
-|    | Functionality                                   | Status |
-|----|-------------------------------------------------|--------|
-| 1  | Binary operations +, -, *, and /.               | V      |
-|    | Binary operations >, <, and ==.                 | V      |
-|    | + and -                                         | V      |
-|    | Brackets to overwrite the order of operations.  | V      |
-|    | Logical operators &&, or, and !.                | V      |
-|    | Comparison operators >=, <=, and !=.            | V      |
-|    | Binary operator %.                              | V      |
-|    | Visualization in the form of dot using graphviz | V      |
-|    | Constant Folding                                | V      |
-| 2  | Types                                           | V      |
-|    | Reserved words                                  | V      |
-|    | Variables                                       | V      |
-|    | Pointer operations                              | V      |
-|    | Identifier operations                           | X      |
-|    | Conversions                                     | V      |
-| 3  | Comments                                        | V      |
-|    | Printf                                          | V      |
-|    | LLVM                                            | X      |
-|    | Written Comment -> LLVM                         | X      |
-|    | Extra comments -> LLVM                          | X      |
+|     | Functionality                                   | Status |
+|-----|-------------------------------------------------|--------|
+| 1   | Binary operations +, -, *, and /.               | L      |
+|     | Binary operations >, <, and ==.                 | L      |
+|     | + and -                                         | L      |
+|     | Brackets to overwrite the order of operations.  | L      |
+|     | Logical operators &&, or, and !.                | L      |
+|     | Comparison operators >=, <=, and !=.            | L      |
+|     | Binary operator %.                              | L      |
+|     | Visualization in the form of dot using graphviz | L      |
+|     | Constant Folding                                | L      |
+| 2   | Types                                           | L      |
+|     | Reserved words                                  | L      |
+|     | Variables                                       | L      |
+|     | Pointer operations                              | L      |
+|     | Identifier operations                           | L      |
+|     | Conversions                                     | L      |
+| 3   | Comments                                        | A      |
+|     | Printf                                          | L      |
+|     | Written Comment -> LLVM                         | X      |
+|     | Extra comments -> LLVM                          | X      |
+| 4   | Reserved words                                  | A      |
+|     | for                                             | A      |
+|     | break                                           | A      |
+|     | continue                                        | A      |
+|     | scopes                                          | A      |
+|     | switch, case and default                        | A      |
+| 5   | Reserved words                                  | A      |
+|     | Scopes                                          | A      |
+|     | Local and global variables                      | A      |
+|     | functions                                       | A      |
+|     | Unreachable and dead code                       | A      |
+|     | not generating code after break and continue    | A      |
+| 6   | Arrays                                          | A      |
+|     | Multi-dimensional arrays                        | X      |
+|     | dynamic arrays                                  | X      |
+|     | Import                                          | A      |

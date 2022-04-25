@@ -49,24 +49,34 @@ class llvmVisitor(AbsASTVisitor):
         for child in ctx.getChildren():
             self.visit(child)
     def visitFunctionDefinition(self, ctx : FunctionDefinition):
+        ctx.symbol_table.parent = self._symbol_table
         self._symbol_table = ctx.symbol_table
+
+
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.main.alloca(varnode.getLLVMType(), 1, varnode.getName())
 
             variable.register = a
         self.default(ctx)
+
+        self._symbol_table = ctx.symbol_table.parent
+
 
     def visitFunctionBody(self, ctx:FunctionBody):
         return self.default(ctx)
 
     def visitCodeBlockNode(self, ctx: CodeblockNode):
+        ctx.symbol_table.parent = self._symbol_table
         self._symbol_table = ctx.symbol_table
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.main.alloca(varnode.getLLVMType(), 1, varnode.getName())
             variable.register = a
         self.default(ctx)
+
+        self._symbol_table = ctx.symbol_table.parent
+
 
     def visitTermNode(self, ctx: TermNode):
         return ctx.llvmValue()

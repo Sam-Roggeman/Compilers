@@ -73,7 +73,6 @@ mathExpr : unOp mathExpr
         // (||,&&)
     | mathExpr logOp mathExpr
     // ((,))
-    | mathExpr ASS mathExpr
     | LBR mathExpr RBR
     | literal
     | variable

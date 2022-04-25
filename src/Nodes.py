@@ -156,7 +156,7 @@ class TermNode(AbsNode):
         return str(self.value)
 
     def setValue(self, value):
-        if value:
+        if value is not None:
             self.value = value
 
     def getValue(self):
@@ -514,7 +514,7 @@ class FunctionDefinition(FunctionNode):
 
     def __init__(self,name,type):
         super().__init__(name)
-        self.functionbody = None
+        self.functionbody:FunctionBody = None
         self.type = type
         self.symbol_table = SymbolTable()
 
@@ -536,19 +536,29 @@ class FunctionDefinition(FunctionNode):
 
     def toString(self):
         return self.type + " " + self.functionName
+    def fold(self):
+        super().fold()
+        self.functionbody = self.functionbody.fold()
+        return self
 
     def getChildren(self):
         children = []
         if self.functionbody:
-            return children.append(self.functionbody)
+            children.append(self.functionbody)
         if self.argumentNode:
-            return children.append(self.argumentNode)
+            children.append(self.argumentNode)
         return children
 
 class FunctionBody(AbsNode):
+    body: list
     def __init__(self):
         super().__init__("FunctionBody")
         self.body = []
+
+    def fold(self):
+        for index in range(len(self.body)):
+            self.body[index] = self.body[index].fold()
+        return self
 
     def toString(self):
         return "functionbody"
