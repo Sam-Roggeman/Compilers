@@ -8,7 +8,7 @@ cfloat = ir.DoubleType()
 i32 = ir.IntType(32)
 cchar = ir.IntType(8)
 cbool = ir.IntType(1)
-
+pointer =ir.PointerType
 
 class TermNode: pass
 
@@ -96,6 +96,7 @@ class AbsNode:
         return ""
 
     def fold(self):
+
         return self
 
     def getChildren(self):
@@ -524,14 +525,12 @@ class FunctionDefinition(FunctionNode):
         return self.type + " " + self.functionName
 
     def getChildren(self):
-        if not self.argumentNode and self.functionbody:
-            return [ self.functionbody]
-        elif not self.functionbody and self.argumentNode:
-            return [self.argumentNode]
-        elif not self.functionbody and not self.argumentNode:
-            return []
-        else:
-            return [self.argumentNode,self.functionbody]
+        children = []
+        if self.functionbody:
+            return children.append(self.functionbody)
+        if self.argumentNode:
+            return children.append(self.argumentNode)
+        return children
 
 class FunctionBody(AbsNode):
     def __init__(self):
@@ -981,6 +980,8 @@ class BinOpNode(AbsNode):
         return self
 
     def getLLVMType(self):
+        if isinstance(self.type, PointerNode):
+            return PointerNode.getLLVMType(self.type)
         return self.type().getLLVMType()
 
 
@@ -1275,7 +1276,10 @@ class AssNode(BinOpNode):
 class PointerNode(VariableNode):
     point_to_type: type
     _name = None
-
+    def getSolvedType(self) -> type:
+        return self
+    def getLLVMType(self):
+        return self._child.getLLVMType().as_pointer()
     def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():

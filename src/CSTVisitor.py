@@ -131,8 +131,18 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitAssignment(self, ctx: CGrammarParser.AssignmentContext):
         node1 = None
         node2 = None
+        name:str
         # todo error report
-        name = ctx.variable()[0].getText()
+        if ctx.variable():
+            name = ctx.variable()[0].getText()
+        elif ctx.dereffedvariable():
+            # name of pointer
+            name = ctx.dereffedvariable().variable().getText()
+            # the adress that is pointed to
+            ref = self.symbol_table.getTableEntry(name).value
+            # the variable under the adress
+            name = ref.child.getName()
+
         node1 = copy.deepcopy(self.symbol_table.getVar(varname=name))
         # Node2
         node2 = self.visit(ctx.rvalue())

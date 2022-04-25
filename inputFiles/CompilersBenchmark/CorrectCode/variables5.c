@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+// WORKS
+
 // Should print the number 10 three times
 int main(){
     int x = 10;

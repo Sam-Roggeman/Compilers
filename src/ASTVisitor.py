@@ -20,6 +20,7 @@ class AbsASTVisitor:
             return self.visitAssNode(ctx)
         elif isinstance(ctx, ArgumentsNode):
             return self.visitArgumentNode(ctx)
+
         elif isinstance(ctx, BinOpNode):
             if isinstance(ctx, BinPlusNode):
                 return self.visitBinPlusNode(ctx)
@@ -61,6 +62,8 @@ class AbsASTVisitor:
         elif isinstance(ctx, FunctionNode):
             if isinstance(ctx, PrintfNode):
                 return self.visitPrintfNode(ctx)
+            elif isinstance(ctx, FunctionDefinition):
+                return self.visitFunctionDefinition(ctx)
             return self.visitFunctionNode(ctx)
 
         elif isinstance(ctx, RefNode):
@@ -76,6 +79,8 @@ class AbsASTVisitor:
                 return self.visitForstatementNode(ctx)
             else:
                 return self.visitStatementNode(ctx)
+        elif isinstance(ctx, FunctionBody):
+            return self.visitFunctionBody(ctx)
         elif isinstance(ctx, ArrayNode):
             if isinstance(ctx,StringNode):
                 return self.visitStringNode(ctx)
@@ -185,6 +190,12 @@ class AbsASTVisitor:
         pass
 
     def visitStringNode(self, ctx:StringNode):
+        pass
+
+    def visitFunctionDefinition(self, ctx : FunctionDefinition):
+        pass
+
+    def visitFunctionBody(self, ctx:FunctionBody):
         pass
 
 

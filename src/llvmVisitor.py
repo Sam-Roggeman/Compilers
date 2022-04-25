@@ -31,8 +31,8 @@ class llvmVisitor(AbsASTVisitor):
             block = mainfn.append_basic_block(name="main-entry")
             self.main = ir.IRBuilder(block)
 
-            self.builder = LLVMBuilder(filepath=filepath)
             super().__init__(ctx, symbol_table)
+            self.main.ret(ir.Constant(i32, 0))
 
             self._output.write(str(self.module))
             self._output.close()
@@ -48,15 +48,25 @@ class llvmVisitor(AbsASTVisitor):
     def default(self, ctx: AbsNode):
         for child in ctx.getChildren():
             self.visit(child)
+    def visitFunctionDefinition(self, ctx : FunctionDefinition):
+        self._symbol_table = ctx.symbol_table
+        for variable in self._symbol_table.variables.values():
+            varnode: VariableNode = variable.node
+            a: ir.AllocaInstr = self.main.alloca(varnode.getLLVMType(), 1, varnode.getName())
+
+            variable.register = a
+        self.default(ctx)
+
+    def visitFunctionBody(self, ctx:FunctionBody):
+        return self.default(ctx)
 
     def visitCodeBlockNode(self, ctx: CodeblockNode):
+        self._symbol_table = ctx.symbol_table
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.main.alloca(varnode.getLLVMType(), 1, varnode.getName())
             variable.register = a
-
         self.default(ctx)
-        self.main.ret(ir.Constant(i32, 0))
 
     def visitTermNode(self, ctx: TermNode):
         return ctx.llvmValue()
@@ -106,24 +116,31 @@ class llvmVisitor(AbsASTVisitor):
         return arguments
 
     def visitRefNode(self, ctx: RefNode):
-        pass
+        a: ir.Instruction = self._symbol_table.getTableEntry(ctx.child.getName()).register
+
+        return a
 
     def visitAssNode(self, ctx: AssNode):
         node: VariableEntry = self._symbol_table.getTableEntry(ctx.lhs.getName())
         value: ir.Instruction
 
         if isinstance(ctx.rhs, TermNode):
-            return self.main.store(value=node.value.llvmValue(), ptr=node.register)
+            return self.main.store(value=ctx.rhs.llvmValue(), ptr=node.register)
         value = self.visit(ctx.rhs)
-        if value.type.is_pointer:
+        if value.type.is_pointer and not isinstance(ctx.rhs,RefNode):
             value = self.main.load(value,value.name)
 
         value = self.convertTo(value, ctx)
         return self.main.store(value, node.register)
 
     def visitPointerNode(self, ctx: PointerNode):
-        if ctx.getChildren()[0]:
+        if ctx.getChildren()[0] and isinstance(ctx._child, StringNode ):
             return self.visit(ctx.getChildren()[0])
+        reg: ir.Instruction = self._symbol_table.getTableEntry(ctx.getName()).register
+        while reg.type.is_pointer:
+            reg = self.main.load(reg, name= reg.name)
+        return reg
+
 
     def visitStringNode(self, ctx: StringNode):
 

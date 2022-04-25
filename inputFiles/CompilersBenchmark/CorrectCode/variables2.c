@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+// WORKS
+
 // Should print the numbers 5, 0.5 and the char c
 int main(){
     int x;

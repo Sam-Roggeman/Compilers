@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+// WORKS
+
 // This should print the number 10 for each basic operation (int and float)
 int main(){
         printf("%d; ", 5+5);

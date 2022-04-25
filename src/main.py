@@ -7,9 +7,6 @@ from CSTVisitor import CGrammarVisitorImplementation
 from AST import *
 from ASTVisitor import *
 
-
-
-
 def main(argv):
     name = argv[1]
     inputlocation = name

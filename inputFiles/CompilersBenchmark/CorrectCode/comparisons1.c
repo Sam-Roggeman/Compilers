@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 
+// WORKS
+
 // This should print 1 and 0 alternating 
 int main(){
 
