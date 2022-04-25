@@ -30,7 +30,7 @@ statement
 rvalue: mathExpr| variable ;
 
 include: INCLUDE library;
-library: '<' VarName '.' 'h' '>';
+library: '<' 'stdio' '.' 'h' '>';
 
 function: printf SEMICOL | functiondefinition | functioncall SEMICOL;
 functiondefinition: (types_specifier | VOID) VarName LBR (arguments?) RBR LCBR functionbody RCBR;
