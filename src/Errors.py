@@ -52,20 +52,23 @@ class RedefinitionException(GeneralException):
     def __str__(self):
         return "error: redefinition of \"" + self.varname + "\" on line " + str(self._metadata.getLine())
 
-
-class IncompatibleException(Exception):
-    type1 = ""
-    type2 = ""
-
-    def __init__(self, type1, type2):
-        super().__init__(varname, metadata)
-        self.type1 = type1
-        self.type2 = type2
-
+class FunctionRedefinitionException(GeneralException):
     def __str__(self):
-        return "error: invalid conversion from \"" + self.type1 + " to " + self.type2 + "\" on line " + str(
-            self._metadata.getLine())
+        return "error: function redefinition of \"" + self.varname + "\" on line " + str(self._metadata.getLine())
 
+# class IncompatibleException(Exception):
+#     type1 = ""
+#     type2 = ""
+#
+#     def __init__(self, type1, type2):
+#         super().__init__(varname, metadata)
+#         self.type1 = type1
+#         self.type2 = type2
+#
+#     def __str__(self):
+#         return "error: invalid conversion from \"" + self.type1 + " to " + self.type2 + "\" on line " + str(
+#             self._metadata.getLine())
+# 
 
 class RValueException(GeneralException):
     def __str__(self):
