@@ -86,7 +86,7 @@ compOp: LT|GT|EQ|LTE|GTE|NE;
 unOp: PLUS|MIN|NOT;
 logOp: AND|OR;
 mul: MUL;
-deref: MUL;
+deref: MUL (MUL)*;
 variable: VarName|array;
 
 
@@ -96,7 +96,7 @@ const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
-arg: ( string | variable | literal | mathExpr);
+arg: ( string | (deref)* variable | literal | mathExpr);
 string: STRING;
 //types_specifiers
 CHARTYPE: 'char';
