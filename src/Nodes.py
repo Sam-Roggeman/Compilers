@@ -477,7 +477,7 @@ class FunctionNode(AbsNode):
     def __init__(self, name):
         super().__init__()
         self.functionName = name
-        self.argumentNode: ArgumentsNode = None
+        self.argumentNode: ArgumentsNode = ArgumentsNode()
 
     def addArgument(self, child):
         self.argumentNode = child
@@ -515,8 +515,8 @@ class FunctionDefinition(FunctionNode):
 
     def checkParent(self,parent):
         self.parent = parent
-        if self.argument:
-            self.argument.checkParent(self)
+        if self.argumentNode:
+            self.argumentNode.checkParent(self)
         if self.functionbody:
             self.functionbody.checkParent(self)
 
@@ -524,14 +524,14 @@ class FunctionDefinition(FunctionNode):
         return self.type + " " + self.functionName
 
     def getChildren(self):
-        if not self.argument and self.functionbody:
+        if not self.argumentNode and self.functionbody:
             return [ self.functionbody]
-        elif not self.functionbody and self.argument:
-            return [self.argument]
-        elif not self.functionbody and not self.argument:
+        elif not self.functionbody and self.argumentNode:
+            return [self.argumentNode]
+        elif not self.functionbody and not self.argumentNode:
             return []
         else:
-            return [self.argument,self.functionbody]
+            return [self.argumentNode,self.functionbody]
 
 class FunctionBody(AbsNode):
     def __init__(self):
