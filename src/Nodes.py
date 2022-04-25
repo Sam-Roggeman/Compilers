@@ -26,6 +26,7 @@ def richest(node1: type, node2: type):
 
 class AbsNode:
 
+
     def setRvalue(self):
         self.rvalue = True
 
@@ -91,7 +92,13 @@ class AbsNode:
         self._lvalue = True
         self.rvalue = False
         self.symbol_table = None
+        self.dead = False
 
+    def getDead(self):
+        return self.dead
+
+    def setDead(self,dead):
+        self.dead = dead
     def toString(self):
         return ""
 
@@ -480,8 +487,14 @@ class FunctionNode(AbsNode):
         self.functionName = name
         self.argumentNode: ArgumentsNode = ArgumentsNode()
 
+    def getName(self):
+        return self.functionName
+
     def addArgument(self, child):
         self.argumentNode = child
+
+    def getArguments(self):
+        return self.argumentNode
 
     def getChildren(self):
         return [self.argumentNode]
@@ -711,7 +724,7 @@ class VariableEntry(object):
     type: type
     node: VariableNode
     value: TermNode
-    register: str
+    register = None
     lhscounter: int
     rhscounter: int
 
@@ -734,23 +747,87 @@ class VariableEntry(object):
         return self.node.isConst()
 
 
+class FunctionEntry(object):
+    const: bool
+    type: type
+    node: FunctionNode
+    register = None
+    lhscounter: int
+    rhscounter: int
+
+    def __init__(self):
+        self.const = False
+        self.lhscounter = 0
+        self.rhscounter = 0
+
+    def setcounters(self, lhs, rhs):
+        self.lhscounter = lhs
+        self.rhscounter = rhs
+
+    def getArguments(self):
+        return self.node.getArguments()
+
+    def getNode(self):
+        return self.node
+
+    def setConst(self):
+        self.const = True
+
+    def getConst(self):
+        return self.node.isConst()
+
+
 class SymbolTable:
     # dict[str, VariableEntry]
     variables = dict()
+    functions = dict()
 
     def __init__(self):
         self.children = []
         self.parent = None
         self.variables = dict()
+        self.functions = dict()
 
     def getValue(self, varname):
         tableEntry = self.getTableEntry(varname)
         return tableEntry.value
 
+    def nodeCheck(self, node):
+        if not node.getName() in self.variables.keys():
+            if self.parent:
+                return self.parent.nodeCheck(node)
+            return True
+        raise FunctionRedefinitionException(varname=node.getName())
+
+    def getFunction(self,node):
+        if not node.getName() in self.functions.keys():
+            if self.parent:
+                return self.parent.getFunction(node)
+            return False
+        return True
+
+    def functionnodeCheck(self,node):
+        if not node.getName() in self.functions.keys():
+            if self.parent:
+                return self.parent.functionnodeCheck(node)
+            return True
+        c = self.functions[node.getName()].getArguments()
+        if len(node.getArguments().getChildren()) != 0 and c:
+            if  c.getChildren()[0].getType() == node.getArguments().getChildren()[0].getType():
+                raise FunctionRedefinitionException(varname=node.getName())
+        return True
+
     def append(self, node: VariableNode):
-        if not node.getName() in self.variables:
-            self.variables[node.getName()] = VariableEntry()
-        self.variables[node.getName()].node = node
+        if self.nodeCheck(node):
+            if not node.getName() in self.variables:
+                self.variables[node.getName()] = VariableEntry()
+            self.variables[node.getName()].node = node
+
+    def appendFunction(self, node: FunctionNode):
+        if self.functionnodeCheck(node):
+            if not node.getName() in self.functions:
+                self.functions[node.getName()] = FunctionEntry()
+            self.functions[node.getName()].node = node
 
     def setParent(self, parent):
         self.parent = parent
@@ -815,7 +892,8 @@ class SymbolTable:
                 pass
             elif lhscounter == 1:
                 value.node.makeConst()
-
+        for c in self.children:
+            c.setConst()
 
 class CodeblockNode(AbsNode):
 

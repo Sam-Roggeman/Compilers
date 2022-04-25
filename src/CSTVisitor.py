@@ -25,6 +25,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitMathExpr(self, ctx: CGrammarParser.MathExprContext):
         # print("visitMathExpr")
         count = ctx.getChildCount()
+        if ctx.ASS() and not ctx.getChild(0).variable():
+            raise RValueException()
         if count == 1:
             # literal or variable
             return self.visit(ctx.getChild(0))
@@ -98,7 +100,6 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             node1 = self.visit(ctx.types_specifier())
         elif ctx.pointertype():
             node1 = self.visit(ctx.pointertype())
-
         name = ctx.variable()[0].getText()
         node1.setName(name)
         self.symbol_table.append(node1)
@@ -144,6 +145,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             name = ref.child.getName()
 
         node1 = copy.deepcopy(self.symbol_table.getVar(varname=name))
+        if self.symbol_table.getConst(name):
+            raise ConstException(varname=name)
         # Node2
         node2 = self.visit(ctx.rvalue())
         self.symbol_table.setValue(name, node2)
@@ -389,20 +392,26 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     def visitBody(self, ctx:CGrammarParser.BodyContext):
         node1 = CodeblockNode()
+        _break = False
+        _continue = False
         if self.symbol_table:
             self.symbol_table.addChild(node1.getSymbolTable())
         self.symbol_table = node1.getSymbolTable()
         for c in ctx.getChildren():
             astchild = self.visit(c)
-            if c.getText() == "break":
+            if _break or _continue:
+                continue
+            elif c.getText() == "break":
                 astchild = BreakNode()
                 astchild.setParent(node1)
                 node1.addchild(astchild)
-            if c.getText() == "continue":
+                _break = True
+            elif c.getText() == "continue":
                 astchild = ContinueNode()
                 astchild.setParent(node1)
                 node1.addchild(astchild)
-            if astchild:
+                _continue = True
+            elif astchild:
                 node1.addchild(astchild)
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
@@ -412,38 +421,48 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         _type = ctx.getChild(0).getText()
         _name = ctx.getChild(1).getText()
         _arguments = ctx.arguments()
+
         node = FunctionDefinition(_name, _type)
-        if self.symbol_table:
-            self.symbol_table.addChild(node.getSymbolTable())
-        self.symbol_table = node.getSymbolTable()
         if _arguments:
-            self.visit(_arguments)
+            if self.symbol_table:
+                self.symbol_table.addChild(node.getSymbolTable())
+                self.symbol_table = node.getSymbolTable()
+            _arguments = self.visit(_arguments)
             node.addArgument(_arguments)
         c = ctx.functionbody()
         body = self.visit(c)
         node.setFunctionbody(body)
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
+        self.symbol_table.appendFunction(node)
+
         return node
     def visitFunctionbody(self, ctx:CGrammarParser.FunctionbodyContext):
         node = FunctionBody()
         _return = ReturnNode()
         ret = False
+        dead = False
         for c in ctx.getChildren():
             astchild = self.visit(c)
             if c.getText() == "return":
                 node.addBody(_return)
                 ret = True
-            elif ret and astchild:
+            elif dead:
+                continue
+            elif ret and astchild and not dead:
                 _return.setChild(astchild)
+                dead = True
             elif astchild:
                 node.addBody(astchild)
         return node
 
     def visitFunctioncall(self, ctx:CGrammarParser.FunctioncallContext):
         name = ctx.getChild(0).getText()
-        arguments = ctx.arguments()
         node = FunctionCall(name)
+        if not self.symbol_table.getFunction(node):
+            raise UninitializedException(name)
+        arguments = ctx.arguments()
+
         node.addArgument(self.visit(arguments))
         return node
 

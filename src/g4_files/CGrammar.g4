@@ -9,7 +9,7 @@ file
     ;
 
 body
-    : ((functioncall SEMICOL) |(expr SEMICOL) | (statement)  | (printf SEMICOL))*  (BREAK SEMICOL | CONTINUE SEMICOL)?;
+    : ((functioncall SEMICOL) |(expr SEMICOL) | (statement)  | (printf SEMICOL))*  (BREAK SEMICOL (expr)* SEMICOL | CONTINUE SEMICOL (expr SEMICOL)*)?;
 
 expr
     : mathExpr
@@ -34,7 +34,7 @@ library: '<' VarName '.' 'h' '>';
 
 function: printf SEMICOL | functiondefinition | functioncall SEMICOL;
 functiondefinition: (types_specifier | VOID) VarName LBR (arguments?) RBR LCBR functionbody RCBR;
-functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal) SEMICOL)?;
+functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal) SEMICOL (expr SEMICOL)*)?;
 functioncall: VarName LBR (arguments)? RBR;
 
 
@@ -73,6 +73,7 @@ mathExpr : unOp mathExpr
         // (||,&&)
     | mathExpr logOp mathExpr
     // ((,))
+    | mathExpr ASS mathExpr
     | LBR mathExpr RBR
     | literal
     | variable
@@ -96,7 +97,7 @@ const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
-arg: ( string | (deref)* variable | literal | mathExpr);
+arg: ( string | expr | (deref)* variable | literal | mathExpr);
 string: STRING;
 //types_specifiers
 CHARTYPE: 'char';

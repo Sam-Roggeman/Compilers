@@ -3,5 +3,5 @@
 // WORKS
 
 int main(){
-    printf("%d%f%c", 10, 0.5f, '%');
+    printf("%d%f%c", 10, 0.5, '%');
 }

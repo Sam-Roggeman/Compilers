@@ -19,8 +19,8 @@ class AST:
         self._symbol_table = self._root.getSymbolTable()
         self._root.solveTypes()
         self.toDot(name="AST")
-
         self.optimize()
+
 
     # def __init__(self, tree, name=None):
     #     self._name = name
