@@ -8,12 +8,13 @@ and downloads the needed packages. It also processes the grammar/
 The second one is the run script which takes one argument which is “./inputfiles/” ${path/to/cfile.c} where cfile.c if the file that should be compiled.
 The ./output folder will contain the dot-output for the ast. For example ./run.sh Test.c
 
+
 The last script takes no input parameters and will compile all of the c files from the project folders in inputfiles.
 It will save all of the output (also terminal output) to ./testfiles/{project}/testOutput and compare it with
 ./testfiles/{project}/expectedOutput, the result is found in ./testfiles/{project}/Result.txt 
 where True means that the files are the same. There will also be terminal output saying if the test has passed or not. 
-If the comparison fails, an errormessage will be displayed. 
-
+If the comparison fails, an errormessage will be displayed. <br>
+WARNING: THESE WILL PROBABLY ALL FAIL AT THE MOMENT AS A LOT OF THE CORE HAS BEEN CHANGED AND THE TESTS NOT UPDATED
 
 
 

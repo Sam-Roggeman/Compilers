@@ -69,6 +69,7 @@ class llvmVisitor(AbsASTVisitor):
     def visitCodeBlockNode(self, ctx: CodeblockNode):
         ctx.symbol_table.parent = self._symbol_table
         self._symbol_table = ctx.symbol_table
+
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.main.alloca(varnode.getLLVMType(), 1, varnode.getName())

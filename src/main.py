@@ -23,7 +23,7 @@ def main(argv):
     visitor = CGrammarVisitorImplementation()
     a = AST(root=visitor.visitStartRule(ctx=tree), name=name)
 
-    a.exportToLLVM(run=True)
+    a.exportToLLVM(run=False)
 
 
 def printfTest():
