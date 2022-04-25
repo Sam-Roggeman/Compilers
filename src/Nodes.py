@@ -797,7 +797,7 @@ class SymbolTable:
             if self.parent:
                 return self.parent.nodeCheck(node)
             return True
-        raise FunctionRedefinitionException(varname=node.getName())
+        raise RedefinitionException(varname=node.getName())
 
     def getFunction(self,node):
         if not node.getName() in self.functions.keys():
