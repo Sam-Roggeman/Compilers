@@ -19,11 +19,21 @@ else
   source "./env/bin/activate"
 fi
 # loop over all of the projects
-for projectnr in 0 1 2
-do
+#for projectnr in 0 1 2
+#do
 # project= name of the project directory
-  project="Project${projectnr}"
+  project="CompilersBenchmark/CorrectCode"
 # if the directory for the output of the tests does not exist
+  if [ ! -d "./testFiles/CompilersBenchmark/" ]
+  then
+#    make it
+    mkdir "./testFiles/CompilersBenchmark/"
+  fi
+  if [ ! -d "./testFiles/CompilersBenchmark/CorrectCode/" ]
+  then
+#    make it
+    mkdir "./testFiles/CompilersBenchmark/CorrectCode/"
+  fi
   if [ ! -d "./testFiles/${project}/testOutput/" ]
   then
 #    make it
@@ -45,11 +55,13 @@ do
   echo "# Comparison of the expected output and the actual output" >> "./testFiles/${project}/Result.txt"
   echo "# Filename Success: True = identical outputs" >> "./testFiles/${project}/Result.txt"
 #  loop over all the c files
-  for f in ./inputFiles/${project}/*.c;
+  for f in ./inputFiles/"${project}"/*.c;
   do
+
 #    extract the name from the path
     name=${f##*/};
     name=${name::-2}
+
 #    execute the compiler and save the output (stderr and stdout) to the testoutput
     python3 ./src/main.py "$f" &> ./testFiles/${project}/testOutput/"${name}.txt";
 #    compare the output of the test with the expected output, split the output and potential errors
@@ -83,5 +95,5 @@ do
       fi
     fi
   done
-done
+#done
 

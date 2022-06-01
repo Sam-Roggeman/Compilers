@@ -1,4 +1,0 @@
-#PreOrder before optimize
-Program,int a0,0,int b0,2,int c0,3,int a1,+,5,int b0,2,int c1,+,int a1,+,5,int b0,2,int b0,2,float g0,1.0,float h0,2.1,float i0,5.5,float g1,+,float h0,2.1,1.0,float i1,+,float g1,+,float h0,2.1,1.0,float h0,2.1,char j0,b
-#Preorder after optimalizations
-Program,int a0,0,const int b0,2,int c0,3,int a1,+,5,const int b0,2,int c1,+,int a1,+,5,const int b0,2,const int b0,2,float g0,1.0,const float h0,2.1,float i0,5.5,float g1,+,const float h0,2.1,1.0,float i1,+,float g1,+,const float h0,2.1,1.0,const float h0,2.1,const char j0,b

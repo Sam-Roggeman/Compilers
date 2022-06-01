@@ -1,12 +1,11 @@
-from Nodes import *
+from Nodes.Nodes import *
 from SymbolTable import *
 
 
 class AbsASTVisitor:
-    _symbol_table: SymbolTable
+    _symbol_table: SymbolTable = None
 
-    def __init__(self, ctx, symbol_table):
-        self._symbol_table = symbol_table
+    def __init__(self, ctx):
         self.visit(ctx)
 
     def visit(self, ctx: AbsNode):
@@ -69,7 +68,9 @@ class AbsASTVisitor:
         elif isinstance(ctx, RefNode):
             return self.visitRefNode(ctx)
         elif isinstance(ctx, StatementNode):
-            if isinstance(ctx, IfstatementNode):
+            if isinstance(ctx, IfElseStatementNode):
+                return self.visitIfElsestatementNode(ctx)
+            elif isinstance(ctx, IfstatementNode):
                 return self.visitIfstatementNode(ctx)
             elif isinstance(ctx, ElsestatementNode):
                 return self.visitElsestatementNode(ctx)
@@ -82,7 +83,7 @@ class AbsASTVisitor:
         elif isinstance(ctx, FunctionBody):
             return self.visitFunctionBody(ctx)
         elif isinstance(ctx, ArrayNode):
-            if isinstance(ctx,StringNode):
+            if isinstance(ctx, StringNode):
                 return self.visitStringNode(ctx)
             return self.visitArrayNode(ctx)
 
@@ -189,21 +190,30 @@ class AbsASTVisitor:
     def visitArgumentNode(self, ctx: ArgumentsNode):
         pass
 
-    def visitStringNode(self, ctx:StringNode):
+    def visitStringNode(self, ctx: StringNode):
         pass
 
-    def visitFunctionDefinition(self, ctx : FunctionDefinition):
+    def visitFunctionDefinition(self, ctx: FunctionDefinition):
         pass
 
-    def visitFunctionBody(self, ctx:FunctionBody):
+    def visitFunctionBody(self, ctx: FunctionBody):
         pass
+
+    def visitIfElsestatementNode(self, ctx: IfElseStatementNode):
+        pass
+
+    def pushSymbolTable(self, symbol_table):
+        symbol_table.parent = self._symbol_table
+        self._symbol_table = symbol_table
+
+    def popSymbolTable(self):
+        self._symbol_table = self._symbol_table.parent
 
 
 class ASTUsageVisitor(AbsASTVisitor):
 
-    def __init__(self, ctx, symbol_table):
-        super().__init__(ctx, symbol_table)
-        self.symbol_table: symbol_table = None
+    def __init__(self, ctx):
+        super().__init__(ctx)
 
     def default(self, ctx):
         for index in range(len(ctx.getChildren())):
@@ -215,8 +225,8 @@ class ASTUsageVisitor(AbsASTVisitor):
     def visitVariableNode(self, ctx: VariableNode):
 
         if ctx.isRvalue():
-            return self.symbol_table.foundRHS(ctx.getName())
-        self.symbol_table.foundLHS(ctx.getName())
+            return self._symbol_table.foundRHS(ctx.getName())
+        self._symbol_table.foundLHS(ctx.getName())
 
     def visitVariableFloatNode(self, ctx):
         self.visitVariableNode(ctx)
@@ -232,10 +242,9 @@ class ASTUsageVisitor(AbsASTVisitor):
             self.visit(child)
 
     def visitCodeBlockNode(self, ctx):
-        self.symbol_table = ctx.getSymbolTable()
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
-        if self.symbol_table.parent:
-            self.symbol_table = self.symbol_table.parent
+        self.popSymbolTable()
 
     def visitTermNode(self, ctx):
         self.default(ctx)
@@ -301,19 +310,29 @@ class ASTUsageVisitor(AbsASTVisitor):
         self.default(ctx)
 
     def visitIfstatementNode(self, ctx):
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
+        self.popSymbolTable()
 
     def visitElsestatementNode(self, ctx):
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
+        self.popSymbolTable()
 
     def visitWhilestatementNode(self, ctx):
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
+        self.popSymbolTable()
 
     def visitForstatementNode(self, ctx):
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
+        self.popSymbolTable()
 
     def visitStatementNode(self, ctx):
+        self.pushSymbolTable(ctx.getSymbolTable())
         self.default(ctx)
+        self.popSymbolTable()
 
 
 class ASTConstVisitor(AbsASTVisitor):

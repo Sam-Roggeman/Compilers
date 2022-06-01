@@ -1,4 +1,0 @@
-#PreOrder before optimize
-Program,+,-,2,3,-,+,5,2,==,+,-,2,1,-,1,>=,+,-,15,16,0,>=,/,-,124,24,25,-,+,2,2
-#Preorder after optimalizations
-Program,1,-7,True,True,True

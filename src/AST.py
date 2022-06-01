@@ -11,7 +11,6 @@ class AST:
     _root: ProgramNode
     _working_node = None
     _last_entered_treenode = None
-    _symbol_table: SymbolTable = SymbolTable()
 
     def __init__(self, root: ProgramNode, name):
         self._name = name
@@ -66,7 +65,7 @@ class AST:
 
     def optimize(self):
         self._root.checkParent()
-        ASTUsageVisitor(ctx=self._root, symbol_table=self._root.symbol_table)
+        ASTUsageVisitor(ctx=self._root)
         # ASTConstVisitor(self.getRoot(), self.getSymbolTable(()))
         self._symbol_table.setConst()
         self.fold()
@@ -79,4 +78,4 @@ class AST:
         return self._symbol_table
 
     def exportToLLVM(self, run=False):
-        llvmVisitor(self._root, self._symbol_table, "./output/" + self._name + "/" + "output.llvm",run=run)
+        llvmVisitor(self._root, "./output/" + self._name + "/" + "output.llvm",run=run)

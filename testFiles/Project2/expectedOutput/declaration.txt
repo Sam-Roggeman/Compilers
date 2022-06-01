@@ -1,4 +1,0 @@
-#PreOrder before optimize
-Program,int a0,5,naam*,int a0,5,b*,naam*,int a0,5,int a1,3,int a2,6
-#Preorder after optimalizations
-Program,int a0,5,naam*,int a0,5,b*,naam*,int a0,5,int a1,3,int a2,6

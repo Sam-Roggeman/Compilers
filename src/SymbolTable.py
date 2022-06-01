@@ -1,5 +1,7 @@
-from Nodes import *
-
+from Nodes.VariableNodes import VariableNode
+from Nodes.TermNodes import TermNode
+from Nodes.AbsNode import AbsNode
+from Errors import *
 
 class VariableEntry(object):
     const: bool
@@ -9,11 +11,13 @@ class VariableEntry(object):
     register= None
     lhscounter: int
     rhscounter: int
+    stored_value: object
 
     def __init__(self):
         self.const = False
         self.lhscounter = 0
         self.rhscounter = 0
+        self.stored_value = None
 
     def setcounters(self, lhs, rhs):
         self.lhscounter = lhs
@@ -28,24 +32,88 @@ class VariableEntry(object):
     def getConst(self):
         return self.node.isConst()
 
+class FunctionEntry(object):
+    const: bool
+    type: type
+    node: AbsNode
+    register = None
+    lhscounter: int
+    rhscounter: int
+
+    def __init__(self):
+        self.const = False
+        self.lhscounter = 0
+        self.rhscounter = 0
+
+    def setcounters(self, lhs, rhs):
+        self.lhscounter = lhs
+        self.rhscounter = rhs
+
+    def getArguments(self):
+        return self.node.getArguments()
+
+    def getNode(self):
+        return self.node
+
+    def setConst(self):
+        self.const = True
+
+    def getConst(self):
+        return self.node.isConst()
+
+
 
 class SymbolTable:
     # dict[str, VariableEntry]
     variables = dict()
+    functions = dict()
 
     def __init__(self):
         self.children = []
         self.parent = None
         self.variables = dict()
+        self.functions = dict()
 
     def getValue(self, varname):
         tableEntry = self.getTableEntry(varname)
         return tableEntry.value
 
+    def nodeCheck(self, node):
+        if not node.getName() in self.variables.keys():
+            # if self.parent:
+            #     return self.parent.nodeCheck(node)
+            return True
+        raise RedefinitionException(varname=node.getName())
+
+    def getFunction(self, node):
+        if not node.getName() in self.functions.keys():
+            if self.parent:
+                return self.parent.getFunction(node)
+            return False
+        return True
+
+    def functionnodeCheck(self, node):
+        if not node.getName() in self.functions.keys():
+            if self.parent:
+                return self.parent.functionnodeCheck(node)
+            return True
+        c = self.functions[node.getName()].getArguments()
+        if len(node.getArguments().getChildren()) != 0 and c:
+            if c.getChildren()[0].getType() == node.getArguments().getChildren()[0].getType():
+                raise FunctionRedefinitionException(varname=node.getName())
+        return True
+
     def append(self, node: VariableNode):
-        if not node.getName() in self.variables:
-            self.variables[node.getName()] = VariableEntry()
-        self.variables[node.getName()].node = node
+        if self.nodeCheck(node):
+            if not node.getName() in self.variables:
+                self.variables[node.getName()] = VariableEntry()
+            self.variables[node.getName()].node = node
+
+    def appendFunction(self, node):
+        if self.functionnodeCheck(node):
+            if not node.getName() in self.functions:
+                self.functions[node.getName()] = FunctionEntry()
+            self.functions[node.getName()].node = node
 
     def setParent(self, parent):
         self.parent = parent
@@ -86,13 +154,13 @@ class SymbolTable:
         tableEntry = self.getTableEntry(name)
         tableEntry.value = node2
 
-    def getTableEntry(self, name):
-        if name not in self.variables:
+    def getTableEntry(self, name, assigned= False):
+        if name not in self.variables or (assigned and self.variables[name].stored_value is None):
             if self.parent:
                 return self.parent.getTableEntry(name)
             raise UninitializedException(varname=name)
-
         return self.variables[name]
+
 
     def foundRHS(self, name):
         tableEntry = self.getTableEntry(name)
@@ -112,3 +180,6 @@ class SymbolTable:
                 value.node.makeConst()
         for c in self.children:
             c.setConst()
+
+
+

@@ -22,10 +22,13 @@ expr
     ;
 
 statement
-    : ifstatement (elsestatement)?
+    : ifstatement
+    | ifelsestatement
     | whilestatement
     | forstatement
     ;
+
+ifelsestatement: ifstatement elsestatement;
 
 rvalue: mathExpr| variable ;
 

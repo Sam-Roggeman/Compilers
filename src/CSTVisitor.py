@@ -1,7 +1,7 @@
 # Generated from ./src/g4_files/CGrammar.g4 by ANTLR 4.9.3
 from g4_files.CGrammarParser import CGrammarParser
 from g4_files.CGrammarVisitor import CGrammarVisitor
-from Nodes import *
+from Nodes.Nodes import *
 from SymbolTable import *
 
 
@@ -344,23 +344,30 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         return node1
 
     def visitStatement(self, ctx: CGrammarParser.StatementContext):
-        node1 = StatementNode()
-        for c in ctx.getChildren():
-            astchild = self.visit(c)
-            if astchild:
-                node1.addChild(astchild)
-
-        return node1
+        # node1 = StatementNode()
+        # for c in ctx.getChildren():
+        #     astchild = self.visit(c)
+        #     if astchild:
+        #         node1.addChild(astchild)
+        return self.visitChildren(ctx)
 
     def visitIfstatement(self, ctx: CGrammarParser.IfstatementContext):
-        condition = ConditionNode()
+        # condition = ConditionNode()
         node = IfstatementNode()
+        self.pushSymbolTable(node.symbol_table)
         child = self.visit(ctx.expr())
-        condition.addChild(child)
+        # condition.addChild(child)
         codeblock = self.visit(ctx.body())
-        node.setCondition(condition)
+        node.setCondition(child)
         node.setBlock(codeblock)
+        self.popSymbolTable()
+
         return node
+
+    def visitIfelsestatement(self, ctx:CGrammarParser.IfelsestatementContext):
+        ifnode = self.visit(ctx.ifstatement())
+        elsenode = self.visit(ctx.elsestatement())
+        return IfElseStatementNode(ifnode,elsenode)
 
     def visitElsestatement(self, ctx: CGrammarParser.ElsestatementContext):
         node = ElsestatementNode()
@@ -417,26 +424,34 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             self.symbol_table = self.symbol_table.parent
         return node1
 
+    def pushSymbolTable(self, new_symbol_table):
+        new_symbol_table.parent = self.symbol_table
+        self.symbol_table = new_symbol_table
+
+    def popSymbolTable(self):
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+
     def visitFunctiondefinition(self, ctx:CGrammarParser.FunctiondefinitionContext):
         _type = ctx.getChild(0).getText()
         _name = ctx.getChild(1).getText()
         _arguments = ctx.arguments()
 
         node = FunctionDefinition(_name, _type)
+        self.symbol_table.appendFunction(node)
+        self.pushSymbolTable(node.symbol_table)
         if _arguments:
             if self.symbol_table:
                 self.symbol_table.addChild(node.getSymbolTable())
                 self.symbol_table = node.getSymbolTable()
             _arguments = self.visit(_arguments)
             node.addArgument(_arguments)
-        c = ctx.functionbody()
-        body = self.visit(c)
+        body = self.visitFunctionbody(ctx.functionbody())
         node.setFunctionbody(body)
-        if self.symbol_table.parent:
-            self.symbol_table = self.symbol_table.parent
-        self.symbol_table.appendFunction(node)
+        self.popSymbolTable()
 
         return node
+
     def visitFunctionbody(self, ctx:CGrammarParser.FunctionbodyContext):
         node = FunctionBody()
         _return = ReturnNode()

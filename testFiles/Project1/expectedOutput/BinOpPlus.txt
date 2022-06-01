@@ -1,4 +1,0 @@
-#PreOrder before optimize
-Program,+,15,25,+,+,32,22,11,+,0,0,+,2222222,1,+,90,245
-#Preorder after optimalizations
-Program,40,65,0,2222223,335
