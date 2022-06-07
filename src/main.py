@@ -24,6 +24,7 @@ def main(argv):
     a = AST(root=visitor.visitStartRule(ctx=tree), name=name)
 
     a.exportToLLVM(run=True)
+    a.exportToMips()
 
 
 def printfTest():

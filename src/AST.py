@@ -2,6 +2,7 @@ import graphviz
 from SymbolTable import *
 from ASTVisitor import *
 from llvmVisitor import *
+from MipsVisitor import *
 
 
 class AST:
@@ -79,3 +80,5 @@ class AST:
 
     def exportToLLVM(self, run=False):
         llvmVisitor(self._root, "./output/" + self._name + "/" + "output.llvm",run=run)
+    def exportToMips(self):
+        MipsVisitor(self._root, "./output/" + self._name + "/" + "output.asm")

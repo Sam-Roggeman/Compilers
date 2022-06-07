@@ -1,11 +1,12 @@
 from __future__ import print_function
-import llvmlite.ir as ir
-import llvmlite.binding as llvm
+
 from ctypes import CFUNCTYPE
-from llvmbuilder import LLVMBuilder
+
+import llvmlite.binding as llvm
+
 from ASTVisitor import AbsASTVisitor
-from SymbolTable import *
 from Nodes.Nodes import *
+from llvmbuilder import LLVMBuilder
 
 fnty = ir.FunctionType(i32, ())
 
@@ -17,7 +18,6 @@ class llvmVisitor(AbsASTVisitor):
     current_function: ir.Function
     globals: list
     _symbol_table = None
-
 
     def __init__(self, ctx: CodeblockNode, filepath: str, run=False):
         self.printf: ir.Function = None
@@ -31,7 +31,6 @@ class llvmVisitor(AbsASTVisitor):
 
             self.current_function = None
             # Now implement the function
-
 
             super().__init__(ctx)
             self.block.ret(ir.Constant(i32, 0))
@@ -50,7 +49,8 @@ class llvmVisitor(AbsASTVisitor):
     def default(self, ctx: AbsNode):
         for child in ctx.getChildren():
             self.visit(child)
-    def visitFunctionDefinition(self, ctx : FunctionDefinition):
+
+    def visitFunctionDefinition(self, ctx: FunctionDefinition):
 
         # and declare a function named "main" inside it
         self.current_function = ir.Function(self.module, fnty, name=ctx.getName())
@@ -70,8 +70,7 @@ class llvmVisitor(AbsASTVisitor):
 
         self.popSymbolTable()
 
-
-    def visitFunctionBody(self, ctx:FunctionBody):
+    def visitFunctionBody(self, ctx: FunctionBody):
         return self.default(ctx)
 
     def visitCodeBlockNode(self, ctx: CodeblockNode):
@@ -86,7 +85,6 @@ class llvmVisitor(AbsASTVisitor):
         self.default(ctx)
 
         self._symbol_table = ctx.symbol_table.parent
-
 
     def visitTermNode(self, ctx: TermNode):
         return ctx.llvmValue()
@@ -129,7 +127,6 @@ class llvmVisitor(AbsASTVisitor):
                 fmt_args[index] = casted
         return self.block.call(self.printf, fmt_args)
 
-
     def visitArgumentNode(self, ctx: ArgumentsNode):
         arguments:list = []
         for arg in ctx.getChildren():
@@ -141,7 +138,7 @@ class llvmVisitor(AbsASTVisitor):
 
         return a
 
-    def visitIfElsestatementNode(self, ctx:IfElseStatementNode):
+    def visitIfElsestatementNode(self, ctx: IfElseStatementNode):
         self.pushSymbolTable(ctx.symbol_table)
 
         condition = self.visit(ctx.condition)
@@ -172,7 +169,7 @@ class llvmVisitor(AbsASTVisitor):
         if_block = self.block.function.append_basic_block(name='if')
         endif_block = self.block.function.append_basic_block(name='endif')
 
-        self.block.cbranch(cond=condition,truebr=if_block,falsebr=endif_block)
+        self.block.cbranch(cond=condition, truebr=if_block, falsebr=endif_block)
 
         self.block = ir.IRBuilder(if_block)
         self.visitCodeBlockNode(ctx.block)
@@ -187,7 +184,7 @@ class llvmVisitor(AbsASTVisitor):
         node: VariableEntry = self._symbol_table.getTableEntry(ctx.lhs.getName())
         value: ir.Instruction
         if not self.current_function:
-            gv = ir.GlobalVariable(module=self.module, name=ctx.lhs.getName(), typ=ctx.rhs.getLLVMType() )
+            gv = ir.GlobalVariable(module=self.module, name=ctx.lhs.getName(), typ=ctx.rhs.getLLVMType())
             gv.initializer = ctx.rhs.llvmValue()
             self._symbol_table.getTableEntry(ctx.lhs.getName()).register = gv
             self.globals.append(gv)
@@ -212,8 +209,6 @@ class llvmVisitor(AbsASTVisitor):
         while reg.type.is_pointer:
             reg = self.block.load(reg, name= reg.name)
         return reg
-
-
 
     def visitStringNode(self, ctx: StringNode):
 
@@ -258,39 +253,22 @@ class llvmVisitor(AbsASTVisitor):
     def visitBinAndNode(self, ctx: BinAndNode):
         v1: ir.Instruction = self.visit(ctx.lhs)
         v2 = self.visit(ctx.rhs)
-
         # copy and load to new reg
         if v1.type.is_pointer:
             v1 = self.block.load(v1, v1.name)
         if v2.type.is_pointer:
             v2 = self.block.load(v2)
-
         if ctx.getLLVMType() != v1.type:
             v1 = self.block.icmp_signed("!=", v1, ir.Constant(i32, 0))
         if v2.type:
             v2 = self.block.icmp_signed("!=", v2, ir.Constant(i32, 0))
-
         return self.block.and_(v1, v2)
-        # c1 = self.main.sitofp(v1,cbool)
-        # c2 = self.main.sitofp(v2,cbool)
-        # self.main.zext(c1,i32)
-        # voidptr_ty = cchar.as_pointer()
-        # fmt = "%d ~~; \00"
-        # c_fmt = ir.Constant(ir.ArrayType(ir.IntType(8), len(fmt)),
-        #                     bytearray(fmt.encode("utf8")))
-        # global_fmt = ir.GlobalVariable(self.module, c_fmt.type, name=str(id(ctx)))
-        # global_fmt.global_constant = True
-        # global_fmt.initializer = c_fmt
-        # a = self.main.bitcast(global_fmt, voidptr_ty, "str")
-        # fmt_args = [a, c1]
-        # self.main.call(self.printf, fmt_args)
-
 
     def visitBinOrNode(self, ctx: BinOrNode):
         super().visitBinOrNode(ctx)
 
     def visitBinEQNode(self, ctx: BinEQNode):
-        return self.compOp(ctx,op='==')
+        return self.compOp(ctx, op='==')
 
     def visitBinModNode(self, ctx: BinModNode):
         super().visitBinModNode(ctx)
@@ -323,10 +301,8 @@ class llvmVisitor(AbsASTVisitor):
 
         return self.compOp(ctx, '>=')
 
-
     def visitBinNENode(self, ctx: BinNENode):
         return self.compOp(ctx, '!=')
-
 
     def visitBinMulNode(self, ctx: BinMulNode):
         v1, v2 = self.visitBinOpNode(ctx=ctx)

@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 // WORKS
-
+// MIPS
 // This should print 1 and 0 alternating 
 int main(){
         printf("%d; ", 1 && 2);

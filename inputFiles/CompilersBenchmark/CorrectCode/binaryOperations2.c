@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 // WORKS
-
+// Mips
 // This should print the number 10 for nested expressions
 int main(){
         printf("%d; ", 2*(2+3));
