@@ -7,6 +7,7 @@ import llvmlite.binding as llvm
 from ASTVisitor import AbsASTVisitor
 from Nodes.Nodes import *
 from llvmbuilder import LLVMBuilder
+from llvmTypes import *
 
 fnty = ir.FunctionType(i32, ())
 
