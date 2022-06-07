@@ -1,8 +1,4 @@
-import sys
-from Errors import *
 from MetaData import *
-from llvmTypes import *
-import copy
 
 class AbsNode:
     def setRvalue(self):
