@@ -10,9 +10,10 @@ file
 
 body
     : ((functioncall SEMICOL)
-    |(expr SEMICOL) | (statement)
-    | (printf SEMICOL))*  (BREAK SEMICOL (expr)* SEMICOL
+    |  (statement)  | (expr SEMICOL)
+    | (printf SEMICOL))*  (BREAK SEMICOL (expr)*
     | CONTINUE SEMICOL (expr SEMICOL)*)?
+    | RETURN expr SEMICOL
     ;
 
 expr
@@ -26,8 +27,8 @@ expr
     ;
 
 statement
-    : ifstatement
-    | ifelsestatement
+    : ifelsestatement
+    | ifstatement
     | whilestatement
     | forstatement
     ;
@@ -49,11 +50,12 @@ functioncall: VarName LBR (arguments)? RBR;
 array: (LSBR INTLit RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR (body) RCBR;
 elsestatement: ELSE LCBR (body) RCBR;
-whilestatement: WHILE LBR expr RBR LCBR (body) RCBR;
+whilestatement: WHILE LBR expr RBR LCBR body RCBR;
 forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR (body) RCBR;
 
 
-declaration: (CONST)? types_specifier variable (array)?;
+declaration: (CONST)? types_specifier variable (array)?(COMMA)? declarationloop? ;
+declarationloop: (variable COMMA? | variable ASS rvalue COMMA? | variable ASS functioncall COMMA? | variable ASS (REF)* variable COMMA?)*;
 declaration_assignment
     : (CONST)? types_specifier variable (array)? ASS rvalue
     |(CONST)? types_specifier variable (array)? ASS functioncall
@@ -86,15 +88,21 @@ mathExpr : unOp mathExpr
     | incr_decr mathExpr
     // ((,))
     | LBR mathExpr RBR
+
+    | functioncall binOpPrio1 functioncall
+    | functioncall binOpPrio2 functioncall
+    | functioncall compOp functioncall
+    | functioncall logOp functioncall
     | literal
     | variable (array)?
+    | dereffedvariable
     ;
 incr_decr: incr|decr;
 decr: MIN MIN;
 incr: PLUS PLUS;
 pointer: MUL;
 pointertype: (CONST)? types_specifier pointer | pointertype pointer;
-dereffedvariable: deref variable;
+dereffedvariable:  deref variable;
 binOpPrio2: DIS| mul |MOD;
 binOpPrio1: PLUS | MIN;
 compOp: LT|GT|EQ|LTE|GTE|NE;
@@ -111,7 +119,7 @@ const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
-arg: ( string | expr | (deref)* variable (array)? | literal | mathExpr);
+arg: ( string | expr | (deref)* variable (array)? | literal | mathExpr | functioncall);
 string: STRING;
 //types_specifiers
 CHARTYPE: 'char';
