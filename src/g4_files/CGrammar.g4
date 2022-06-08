@@ -27,8 +27,8 @@ expr
     ;
 
 statement
-    : ifelsestatement
-    | ifstatement
+    : ifstatement
+    | ifelsestatement
     | whilestatement
     | forstatement
     ;
@@ -50,9 +50,11 @@ functioncall: VarName LBR (arguments)? RBR;
 array: (LSBR INTLit RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR (body) RCBR;
 elsestatement: ELSE LCBR (body) RCBR;
-whilestatement: WHILE LBR expr RBR LCBR body RCBR;
-forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR (body) RCBR;
-
+whilestatement: WHILE LBR expr RBR LCBR (body) RCBR;
+forstatement: FOR LBR initializer SEMICOL condition SEMICOL incrementer RBR LCBR (body) RCBR;
+condition: expr;
+initializer: expr;
+incrementer: expr;
 
 declaration: (CONST)? types_specifier variable (array)?(COMMA)? declarationloop? ;
 declarationloop: (variable COMMA? | variable ASS rvalue COMMA? | variable ASS functioncall COMMA? | variable ASS (REF)* variable COMMA?)*;

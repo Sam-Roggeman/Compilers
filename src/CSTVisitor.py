@@ -418,18 +418,24 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.setCondition(child)
         node.setBlock(codeblock)
         return node
+    def visitCondition(self, ctx:CGrammarParser.ConditionContext):
+        return self.visit(ctx.expr())
+    def visitInitializer(self, ctx:CGrammarParser.InitializerContext):
+        return self.visit(ctx.expr())
+    def visitIncrementer(self, ctx:CGrammarParser.IncrementerContext):
+        return self.visit(ctx.expr())
 
     def visitForstatement(self, ctx: CGrammarParser.ForstatementContext):
-        condition = ConditionNode()
-        node = ForstatementNode()
-        expressions = ctx.expr()
-        for c in range(len(expressions)):
-            expr = self.visit(ctx.expr(c))
-            condition.addChild(expr)
-        codeblock = self.visit(ctx.body())
+        node = WhilestatementNode()
+        initializer = self.visit(ctx.initializer())
+        condition = self.visit(ctx.condition())
+        incrementer = self.visit(ctx.incrementer())
+
+        codeblock:CodeblockNode = self.visit(ctx.body())
+        codeblock.addchild(incrementer)
         node.setCondition(condition)
         node.setBlock(codeblock)
-        return node
+        return initializer, node
 
     def visitBody(self, ctx:CGrammarParser.BodyContext):
         node1 = CodeblockNode()
@@ -507,7 +513,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 _return.setChild(astchild)
                 dead = True
             elif astchild:
-                node.addBody(astchild)
+                if isinstance( astchild, tuple ):
+                    for astc in astchild:
+                        node.addBody(astc)
+                else:
+                    node.addBody(astchild)
+
         return node
 
     def visitFunctioncall(self, ctx:CGrammarParser.FunctioncallContext):
@@ -517,7 +528,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if arguments:
             node.addArgument(self.visit(arguments))
 
-        if not self.symbol_table.getFunction(node):
+        if not self.symbol_table.getFunction(node.getName()):
             raise UninitializedException(name)
 
         return node
