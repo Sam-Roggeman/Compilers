@@ -57,7 +57,7 @@ initializer: expr;
 incrementer: expr;
 
 declaration: (CONST)? types_specifier variable (array)?(COMMA)? declarationloop? ;
-declarationloop: (variable COMMA? | variable ASS rvalue COMMA? | variable ASS functioncall COMMA? | variable ASS (REF)* variable COMMA?)*;
+declarationloop: (variable COMMA?| variable ASS rvalue COMMA? | variable ASS functioncall COMMA? | variable ASS (REF)* variable COMMA?)*;
 declaration_assignment
     : (CONST)? types_specifier variable (array)? ASS rvalue
     |(CONST)? types_specifier variable (array)? ASS functioncall
