@@ -10,11 +10,16 @@ from SymbolTable import *
 class CGrammarVisitorImplementation(CGrammarVisitor):
     def __init__(self):
         self.symbol_table = None
+        self.visitedmain = False
+        self.counter = 0
 
     # Visit a parse tree produced by CGrammarParser#startRule.
     def visitStartRule(self, ctx: CGrammarParser.StartRuleContext):
         # print("visitStartRule")
-        return self.visit(ctx.file())
+        tree = self.visit(ctx.file())
+        if not self.getVisitedMain():
+            raise mainNotFound("")
+        return tree
 
     # Visit a parse tree produced by CGrammarParser#expr.
     def visitExpr(self, ctx: CGrammarParser.ExprContext):
@@ -51,14 +56,18 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             operator_node: BinOpNode = None
             if ctx.binOpPrio1():
                 operator_node = self.visit(ctx.binOpPrio1())
-
             elif ctx.binOpPrio2():
                 operator_node = self.visit(ctx.binOpPrio2())
+
             elif ctx.compOp():
                 operator_node = self.visit(ctx.compOp())
             elif ctx.logOp():
                 operator_node = self.visit(ctx.logOp())
             operator_node.setChildren(child1, child2)
+            if ctx.binOpPrio1() or ctx.binOpPrio2():
+                operatorChildren = operator_node.getChildren()
+                if type(operatorChildren[0] == PointerNode and type(operatorChildren[1]) == PointerNode):
+                    raise pointerOperationError(operator_node.toString())
             return operator_node
         else:
             raise ValueError("Unknown Node")
@@ -123,10 +132,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             node2 = self.visit(ctx.functioncall())
 
         self.symbol_table.setValue(name, node2)
-        assinmentNode = AssNode()
-        assinmentNode.setChild(node1, 0)
-        assinmentNode.setChild(node2, 1)
-        return assinmentNode
+        if not node2:
+            return node1
+        assignmentNode = AssNode()
+        assignmentNode.setChild(node1, 0)
+        assignmentNode.setChild(node2, 1)
+        return assignmentNode
 
     # Visit a parse tree produced by CGrammarParser#assignment.
     def visitAssignment(self, ctx: CGrammarParser.AssignmentContext):
@@ -290,6 +301,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         c = ctx.arguments()
         astchild = self.visit(c)
         node.addArgument(astchild)
+        if self.counter > 0 and self.counter != len(node.getArguments().getChildren())-1:
+            raise functionCallargumentMismatch
         return node
 
     def visitArguments(self, ctx: CGrammarParser.ArgumentsContext):
@@ -306,11 +319,14 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitString(self, ctx: CGrammarParser.StringContext):
         node = StringNode()
         pointernode = PointerNode(node)
+        self.counter = 0
         firstnode = node
         node.setParent(pointernode)
         string = ctx.getText()
         escaped = False
         for char in string:
+            if char == "%":
+                self.counter += 1
             if char != '"':
                 if char == '\\' and not escaped:
                     escaped = True
@@ -328,6 +344,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node = node.parent
         node.setNext(None)
         a = firstnode.getFullString()
+
         return pointernode
 
     def visitFile(self, ctx: CGrammarParser.FileContext):
@@ -438,18 +455,23 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         _arguments = ctx.arguments()
 
         node = FunctionDefinition(_name, _type)
-        self.symbol_table.appendFunction(node)
-        self.pushSymbolTable(node.symbol_table)
+
         if _arguments:
             if self.symbol_table:
                 self.symbol_table.addChild(node.getSymbolTable())
                 self.symbol_table = node.getSymbolTable()
             _arguments = self.visit(_arguments)
             node.addArgument(_arguments)
+        a = ctx.functionbody()
         body = self.visitFunctionbody(ctx.functionbody())
         node.setFunctionbody(body)
-        self.popSymbolTable()
-
+        self.symbol_table.appendFunction(node)
+        node.checkReturn()
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+        self.symbol_table.appendFunction(node)
+        if _name == "main":
+            self.setVisitedMain()
         return node
 
     def visitFunctionbody(self, ctx:CGrammarParser.FunctionbodyContext):
@@ -474,11 +496,13 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitFunctioncall(self, ctx:CGrammarParser.FunctioncallContext):
         name = ctx.getChild(0).getText()
         node = FunctionCall(name)
+        arguments = ctx.arguments()
+        if arguments:
+            node.addArgument(self.visit(arguments))
+
         if not self.symbol_table.getFunction(node):
             raise UninitializedException(name)
-        arguments = ctx.arguments()
 
-        node.addArgument(self.visit(arguments))
         return node
 
     def visitInclude(self, ctx:CGrammarParser.IncludeContext):
@@ -489,6 +513,26 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitLibrary(self, ctx:CGrammarParser.LibraryContext):
         name = ctx.getText()
         node = LibraryNode(name)
+        return node
+
+    def visitFunctiondeclaration(self, ctx:CGrammarParser.FunctiondeclarationContext):
+        _type = ctx.getChild(0).getText()
+        _name = ctx.getChild(1).getText()
+        _arguments = ctx.arguments()
+
+        node = FunctionDefinition(_name, _type)
+        if _arguments:
+            if self.symbol_table:
+                self.symbol_table.addChild(node.getSymbolTable())
+                self.symbol_table = node.getSymbolTable()
+            _arguments = self.visit(_arguments)
+            node.addArgument(_arguments)
+        node.checkReturn()
+        if self.symbol_table.parent:
+            self.symbol_table = self.symbol_table.parent
+        self.symbol_table.appendFunction(node)
+        if _name == "main":
+            self.setVisitedMain()
         return node
 
     # def findNode(self, name: str):
@@ -504,5 +548,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     #         s = s.deRef()
     #     return s
 
+    def setVisitedMain(self):
+        self.visitedmain = True
+
+    def getVisitedMain(self):
+        return self.visitedmain
 
 del CGrammarParser

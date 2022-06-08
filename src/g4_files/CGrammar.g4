@@ -9,7 +9,11 @@ file
     ;
 
 body
-    : ((functioncall SEMICOL) |(expr SEMICOL) | (statement)  | (printf SEMICOL))*  (BREAK SEMICOL (expr)* SEMICOL | CONTINUE SEMICOL (expr SEMICOL)*)?;
+    : ((functioncall SEMICOL)
+    |(expr SEMICOL) | (statement)
+    | (printf SEMICOL))*  (BREAK SEMICOL (expr)* SEMICOL
+    | CONTINUE SEMICOL (expr SEMICOL)*)?
+    ;
 
 expr
     : mathExpr
@@ -17,7 +21,7 @@ expr
     | assignment
     | declaration_assignment
     | reference
-    | variable
+    | variable (array)?
     | string
     ;
 
@@ -30,33 +34,35 @@ statement
 
 ifelsestatement: ifstatement elsestatement;
 
-rvalue: mathExpr| variable ;
+rvalue: mathExpr| variable (array)? ;
 
 include: INCLUDE library;
 library: '<' 'stdio' '.' 'h' '>';
 
-function: printf SEMICOL | functiondefinition | functioncall SEMICOL;
+function: printf SEMICOL | functiondeclaration SEMICOL| functiondefinition | functioncall SEMICOL;
+functiondeclaration: (types_specifier | VOID) VarName LBR (arguments?) RBR;
 functiondefinition: (types_specifier | VOID) VarName LBR (arguments?) RBR LCBR functionbody RCBR;
-functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal) SEMICOL (expr SEMICOL)*)?;
+functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal)? SEMICOL (expr SEMICOL)*)?;
 functioncall: VarName LBR (arguments)? RBR;
 
 
-array: (LSBR expr RSBR)+;
+array: (LSBR INTLit RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR (body) RCBR;
 elsestatement: ELSE LCBR (body) RCBR;
 whilestatement: WHILE LBR expr RBR LCBR (body) RCBR;
 forstatement: FOR LBR expr SEMICOL expr SEMICOL expr RBR LCBR (body) RCBR;
 
 
-declaration: (CONST)? types_specifier variable;
+declaration: (CONST)? types_specifier variable (array)?;
 declaration_assignment
-    : (CONST)? types_specifier variable ASS rvalue
-    |(CONST)? types_specifier variable ASS functioncall
-    | (CONST)? pointertype variable ASS (REF)* variable
+    : (CONST)? types_specifier variable (array)? ASS rvalue
+    |(CONST)? types_specifier variable (array)? ASS functioncall
+    | (CONST)? pointertype variable (array)? ASS (REF)* variable
+    | (CONST)? pointertype variable
     ;
 assignment
-    : (variable|dereffedvariable) ASS rvalue
-    | (variable|dereffedvariable) ASS (REF)* variable
+    : (variable (array)?|dereffedvariable) ASS rvalue
+    | (variable (array)?|dereffedvariable) ASS (REF)* variable
     ;
 reference: REF variable;
 
@@ -78,7 +84,7 @@ mathExpr : unOp mathExpr
     // ((,))
     | LBR mathExpr RBR
     | literal
-    | variable
+    | variable (array)?
     ;
 pointer: MUL;
 pointertype: (CONST)? types_specifier pointer | pointertype pointer;
@@ -90,7 +96,7 @@ unOp: PLUS|MIN|NOT;
 logOp: AND|OR;
 mul: MUL;
 deref: MUL (MUL)*;
-variable: VarName|array;
+variable: VarName;
 
 
 types_specifier: CHARTYPE|FLOATTYPE|INTTYPE;
@@ -99,7 +105,7 @@ const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
-arg: ( string | expr | (deref)* variable | literal | mathExpr);
+arg: ( string | expr | (deref)* variable (array)? | literal | mathExpr);
 string: STRING;
 //types_specifiers
 CHARTYPE: 'char';

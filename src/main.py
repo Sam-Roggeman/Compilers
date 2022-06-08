@@ -3,6 +3,7 @@ from antlr4 import *
 
 from g4_files.CGrammarLexer import CGrammarLexer
 from g4_files.CGrammarParser import CGrammarParser
+from ErrorVisitor import *
 from CSTVisitor import CGrammarVisitorImplementation
 from AST import *
 from ASTVisitor import *
@@ -19,12 +20,14 @@ def main(argv):
     lexer = CGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = CGrammarParser(stream)
+    parser.removeErrorListeners()
+    ErrorListener = ErrorVisitors()
+    parser.addErrorListener(ErrorListener)
     tree = parser.startRule()
     visitor = CGrammarVisitorImplementation()
     a = AST(root=visitor.visitStartRule(ctx=tree), name=name)
-
     a.exportToLLVM(run=True)
-    a.exportToMips()
+    # a.exportToMips()
 
 
 def printfTest():

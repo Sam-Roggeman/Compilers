@@ -3,7 +3,6 @@ from copy import deepcopy
 from MetaData import *
 
 
-
 class GeneralException(Exception):
     _metadata: MetaData
     varname: str
@@ -36,9 +35,11 @@ class RedefinitionException(GeneralException):
     def __str__(self):
         return "error: redefinition of \"" + self.varname + "\" on line " + str(self._metadata.getLine())
 
+
 class FunctionRedefinitionException(GeneralException):
     def __str__(self):
         return "error: function redefinition of \"" + self.varname + "\" on line " + str(self._metadata.getLine())
+
 
 # class IncompatibleException(Exception):
 #     type1 = ""
@@ -54,6 +55,30 @@ class FunctionRedefinitionException(GeneralException):
 #             self._metadata.getLine())
 # 
 
+
 class RValueException(GeneralException):
     def __str__(self):
         return "error: lvalue required as left operand of assignment" + " on line " + str(self._metadata.getLine())
+
+
+class returnTypeMismatch(GeneralException):
+    def __str__(self):
+        return "error: void function does not expect a return" + str(self._metadata.getLine())
+
+class declarationDefinitionMismatch(GeneralException):
+    def __str__(self):
+        return "error: declaration is not matched with definition/declaration on line " + str(self._metadata.getLine())
+
+
+class functionCallargumentMismatch(GeneralException):
+    def __str__(self):
+        return "error: functioncall arguments don't match functiondefinition arguments " + str(self._metadata.getLine())
+
+class mainNotFound(GeneralException):
+    def __str__(self):
+        return "error: main not found"
+
+class pointerOperationError(GeneralException):
+    def __str__(self):
+        return "error: invalid operands to binary " + self.varname
+

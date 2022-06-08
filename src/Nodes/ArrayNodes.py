@@ -1,4 +1,5 @@
-from Nodes.AbsNode import *
+from Nodes.AbsNode import AbsNode
+
 
 class ArrayNode(AbsNode):
     def __init__(self):

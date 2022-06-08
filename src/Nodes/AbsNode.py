@@ -76,8 +76,9 @@ class AbsNode:
     def toDot(self, dot):
         dot.node(str(id(self)), str(self))
         for child in self.getChildren():
-            child.toDot(dot)
-            dot.edge(str(id(self)), str(id(child)))
+            if child:
+                child.toDot(dot)
+                dot.edge(str(id(self)), str(id(child)))
         return dot
 
     def preOrderTraversal(self, string: str, oneline=True, indent=0):
@@ -101,4 +102,5 @@ class AbsNode:
     def solveTypes(self):
         children = self.getChildren()
         for index in range(len(children)):
-            children[index].solveTypes()
+            if children[index]:
+                children[index].solveTypes()

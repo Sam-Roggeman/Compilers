@@ -1,5 +1,6 @@
-from Nodes.AbsNode import *
+from Nodes.AbsNode import AbsNode
 import SymbolTable
+from Errors import *
 
 
 class FunctionNode(AbsNode):
@@ -38,7 +39,7 @@ class FunctionDefinition(FunctionNode):
     def __init__(self,name,type):
         super().__init__(name)
         self.functionbody: FunctionBody = None
-        self.type = type
+        self.returntype = type
         self.symbol_table = SymbolTable.SymbolTable()
 
     def getSymbolTable(self):
@@ -58,7 +59,8 @@ class FunctionDefinition(FunctionNode):
             self.functionbody.checkParent(self)
 
     def toString(self):
-        return self.type + " " + self.functionName
+        return self.returntype + " " + self.functionName
+
     def fold(self):
         super().fold()
         self.functionbody = self.functionbody.fold()
@@ -71,6 +73,14 @@ class FunctionDefinition(FunctionNode):
         if self.argumentNode:
             children.append(self.argumentNode)
         return children
+
+    def checkReturn(self):
+
+        if self.returntype == "void" and self.functionbody != None \
+                and len(self.functionbody.body) > 0 and\
+                type(self.functionbody.body[-1]) == ReturnNode \
+                and self.functionbody.body[-1].getChildren()[0] != None:
+            raise returnTypeMismatch("")
 
 class FunctionBody(AbsNode):
     body: list
