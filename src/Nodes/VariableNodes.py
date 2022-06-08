@@ -1,6 +1,9 @@
-from Nodes.AbsNode import *
+import copy
+
 from Nodes.TermNodes import *
 from Nodes.ArrayNodes import *
+from llvmTypes import *
+
 
 class VariableNameNode(AbsNode):
     def __init__(self):
