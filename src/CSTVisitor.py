@@ -517,7 +517,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if arguments:
             node.addArgument(self.visit(arguments))
 
-        if not self.symbol_table.getFunction(node):
+        if not self.symbol_table.getFunction(node.getName()):
             raise UninitializedException(name)
 
         return node

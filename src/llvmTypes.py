@@ -4,5 +4,6 @@ from llvmlite import ir
 cfloat = ir.DoubleType()
 i32 = ir.IntType(32)
 cchar = ir.IntType(8)
+cvoid = ir.VoidType()
 cbool = ir.IntType(1)
 pointer =ir.PointerType

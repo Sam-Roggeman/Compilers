@@ -9,7 +9,6 @@ from Nodes.Nodes import *
 from llvmbuilder import LLVMBuilder
 from llvmTypes import *
 
-fnty = ir.FunctionType(i32, ())
 
 
 class llvmVisitor(AbsASTVisitor):
@@ -50,10 +49,18 @@ class llvmVisitor(AbsASTVisitor):
         for child in ctx.getChildren():
             self.visit(child)
 
-    def visitFunctionDefinition(self, ctx: FunctionDefinition):
+    def llvmType(self, type:str):
+        if type == 'void':
+            return cvoid
+        if type == 'int':
+            return i32
+        if type == 'char':
+            return cchar
 
-        # and declare a function named "main" inside it
+    def visitFunctionDefinition(self, ctx: FunctionDefinition):
+        fnty = ir.FunctionType(self.llvmType(ctx.returntype), () )
         self.current_function = ir.Function(self.module, fnty, name=ctx.getName())
+        self._symbol_table.getFunction(ctx.getName()).memorylocation = self.current_function
         block = self.current_function.append_basic_block(name=f"main-entry-{ctx.getName()}")
         self.block = ir.IRBuilder(block)
 
@@ -70,6 +77,8 @@ class llvmVisitor(AbsASTVisitor):
         self.default(ctx)
         if ctx.getName() == 'main' and not self.block.block.is_terminated:
             self.block.ret(ir.Constant(i32,1))
+        if ctx.returntype == 'void' and not self.block.block.is_terminated:
+            self.block.ret_void()
 
         self.popSymbolTable()
 
@@ -145,7 +154,10 @@ class llvmVisitor(AbsASTVisitor):
         return self.visitVariableNameNode(ctx)
 
     def visitFunctionNode(self, ctx: FunctionNode):
-        pass
+        functionnode = self._symbol_table.getFunction(ctx.functionName)
+        fmt_args = self.visit(ctx.argumentNode)
+        self.block.call(functionnode.memorylocation,fmt_args)
+        return 1
 
     def visitPrintfNode(self, ctx: PrintfNode):
         voidptr_ty = cchar.as_pointer()
@@ -174,7 +186,10 @@ class llvmVisitor(AbsASTVisitor):
 
     def visitReturnNode(self, ctx: ReturnNode):
         value = self.visit(ctx.child)
-        self.block.ret(value)
+        if value is None:
+            self.block.ret_void()
+        else:
+            self.block.ret(value)
         return
 
     def visitIfElsestatementNode(self, ctx: IfElseStatementNode):

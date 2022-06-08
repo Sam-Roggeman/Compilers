@@ -3,12 +3,13 @@ from Nodes.TermNodes import TermNode
 from Nodes.AbsNode import AbsNode
 from Errors import *
 
+
 class VariableEntry(object):
     const: bool
     type: type
     node: VariableNode
     value: TermNode
-    register= None
+    register = None
     lhscounter: int
     rhscounter: int
     stored_value: object
@@ -32,14 +33,14 @@ class VariableEntry(object):
     def getConst(self):
         return self.node.isConst()
 
+
 class FunctionEntry(object):
     const: bool
     type: type
     node: AbsNode
-    register = None
+    memorylocation = None
     lhscounter: int
     rhscounter: int
-
 
     def __init__(self):
         self.const = False
@@ -49,7 +50,6 @@ class FunctionEntry(object):
     def setcounters(self, lhs, rhs):
         self.lhscounter = lhs
         self.rhscounter = rhs
-
 
     def getArguments(self):
         return self.node.getArguments()
@@ -62,7 +62,6 @@ class FunctionEntry(object):
 
     def getConst(self):
         return self.node.isConst()
-
 
 
 class SymbolTable:
@@ -87,19 +86,19 @@ class SymbolTable:
             return True
         raise RedefinitionException(varname=node.getName())
 
-    def checkArguments(self,node):
+    def checkArguments(self, node):
         node_in_symboltable = self.functions[node.getName()]
-        if(len(node_in_symboltable.getArguments().getChildren()) != len(node.getArguments().getChildren())):
+        if (len(node_in_symboltable.getArguments().getChildren()) != len(node.getArguments().getChildren())):
             raise functionCallargumentMismatch("")
-        a=2
+        a = 2
 
-    def getFunction(self, node):
-        if not node.getName() in self.functions.keys():
+    def getFunction(self, name):
+        if name not in self.functions.keys():
             if self.parent:
-                return self.parent.getFunction(node)
-            return False
-        self.checkArguments(node)
-        return True
+                return self.parent.getFunction(name)
+            return None
+        self.checkArguments(self.functions[name].node)
+        return self.functions[name]
 
     def functionnodeCheck(self, node):
         if not node.getName() in self.functions.keys():
@@ -112,11 +111,11 @@ class SymbolTable:
         if node_in_symboltable.functionbody == None:
             if len(c) == len(arguments) and node.returntype == node_in_symboltable.returntype:
                 for i in range(len(arguments)):
-                    if(arguments[i].getType() != c[i].getType()):
-                        raise(declarationDefinitionMismatch(""))
+                    if (arguments[i].getType() != c[i].getType()):
+                        raise (declarationDefinitionMismatch(""))
                 return True
             else:
-                raise(declarationDefinitionMismatch(""))
+                raise (declarationDefinitionMismatch(""))
         if len(node.getArguments().getChildren()) != 0 and c:
             if c.getChildren()[0].getType() == node.getArguments().getChildren()[0].getType():
                 raise FunctionRedefinitionException(varname=node.getName())
@@ -173,13 +172,12 @@ class SymbolTable:
         tableEntry = self.getTableEntry(name)
         tableEntry.value = node2
 
-    def getTableEntry(self, name, assigned= False):
+    def getTableEntry(self, name, assigned=False):
         if name not in self.variables or (assigned and self.variables[name].stored_value is None):
             if self.parent:
                 return self.parent.getTableEntry(name)
             raise UninitializedException(varname=name)
         return self.variables[name]
-
 
     def foundRHS(self, name):
         tableEntry = self.getTableEntry(name)
@@ -199,6 +197,3 @@ class SymbolTable:
                 value.node.makeConst()
         for c in self.children:
             c.setConst()
-
-
-
