@@ -443,6 +443,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     def pushSymbolTable(self, new_symbol_table):
         new_symbol_table.parent = self.symbol_table
+        self.symbol_table.addChild(new_symbol_table)
         self.symbol_table = new_symbol_table
 
     def popSymbolTable(self):
@@ -462,13 +463,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 self.symbol_table = node.getSymbolTable()
             _arguments = self.visit(_arguments)
             node.addArgument(_arguments)
-        a = ctx.functionbody()
+        self.pushSymbolTable(SymbolTable())
         body = self.visitFunctionbody(ctx.functionbody())
         node.setFunctionbody(body)
-        self.symbol_table.appendFunction(node)
         node.checkReturn()
-        if self.symbol_table.parent:
-            self.symbol_table = self.symbol_table.parent
+        node.setSymbolTabel(self.symbol_table)
+        self.popSymbolTable()
         self.symbol_table.appendFunction(node)
         if _name == "main":
             self.setVisitedMain()
