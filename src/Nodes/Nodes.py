@@ -323,7 +323,8 @@ class BinOpNode(AbsNode):
         return self
 
     def getLLVMType(self):
-        return cbool
+        a = self.type.getLLVMType()
+        return a
 
 
 class TermBoolNode(TermNode):
@@ -591,6 +592,7 @@ class AssNode(BinOpNode):
         AbsNode.solveTypes(self)
         self.type = self.lhs.getSolvedType()
         if isinstance(self.rhs, TermNode) and self.type != self.rhs.getSolvedType():
+            sys.stderr.write(f"Implicit conversion from {self.rhs.getSolvedType().getType()} to {self.type.getType()}")
             self.rhs = self.type(self.rhs.value)
         return
 

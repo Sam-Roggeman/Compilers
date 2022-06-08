@@ -34,7 +34,6 @@ class llvmVisitor(AbsASTVisitor):
             # Now implement the function
 
             super().__init__(ctx)
-            self.block.ret(ir.Constant(i32, 0))
 
             self._output.write(str(self.module))
             self._output.close()
@@ -67,9 +66,43 @@ class llvmVisitor(AbsASTVisitor):
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.block.alloca(varnode.getLLVMType(), 1, varnode.getName())
             variable.register = a
+
         self.default(ctx)
+        if ctx.getName() == 'main' and not self.block.block.is_terminated:
+            self.block.ret(ir.Constant(i32,1))
 
         self.popSymbolTable()
+
+    def visitConditionNode(self, ctx):
+        pass
+
+    def visitWhilestatementNode(self, ctx: WhilestatementNode):
+        self.pushSymbolTable(ctx.symbol_table)
+
+
+        cond_block = self.block.function.append_basic_block(name='while_condition')
+        while_block = self.block.function.append_basic_block(name='while')
+        elihw_block = self.block.function.append_basic_block(name='elihw')
+        self.block.branch(cond_block)
+        self.block = ir.IRBuilder(cond_block)
+        condition = self.visit(ctx.condition)
+        if condition.type == i32:
+            condition = self.block.icmp_signed("!=", condition, ir.Constant(i32, 0))
+        self.block.cbranch(cond=condition, truebr=while_block, falsebr=elihw_block)
+
+        self.block = ir.IRBuilder(while_block)
+        self.visitCodeBlockNode(ctx.block)
+        self.block.branch(cond_block)
+
+        self.block = ir.IRBuilder(elihw_block)
+        self.popSymbolTable()
+
+        return
+
+
+        a = self.visit(ctx.condition)
+        print("a")
+        return
 
     def visitFunctionBody(self, ctx: FunctionBody):
         return self.default(ctx)
@@ -129,7 +162,7 @@ class llvmVisitor(AbsASTVisitor):
         return self.block.call(self.printf, fmt_args)
 
     def visitArgumentNode(self, ctx: ArgumentsNode):
-        arguments:list = []
+        arguments: list = []
         for arg in ctx.getChildren():
             arguments.append(self.visit(arg))
         return arguments
@@ -138,6 +171,11 @@ class llvmVisitor(AbsASTVisitor):
         a: ir.Instruction = self._symbol_table.getTableEntry(ctx.child.getName()).register
 
         return a
+
+    def visitReturnNode(self, ctx: ReturnNode):
+        value = self.visit(ctx.child)
+        self.block.ret(value)
+        return
 
     def visitIfElsestatementNode(self, ctx: IfElseStatementNode):
         self.pushSymbolTable(ctx.symbol_table)
@@ -196,7 +234,7 @@ class llvmVisitor(AbsASTVisitor):
 
             return self.block.store(value=node.stored_value, ptr=node.register)
         value = self.visit(ctx.rhs)
-        if value.type.is_pointer and not isinstance(ctx.rhs,RefNode):
+        if value.type.is_pointer and not isinstance(ctx.rhs, RefNode):
             value = self.block.load(value, value.name)
 
         value = self.convertTo(value, ctx)
@@ -204,11 +242,11 @@ class llvmVisitor(AbsASTVisitor):
         return self.block.store(value, node.register)
 
     def visitPointerNode(self, ctx: PointerNode):
-        if ctx.getChildren()[0] and isinstance(ctx._child, StringNode ):
+        if ctx.getChildren()[0] and isinstance(ctx._child, StringNode):
             return self.visit(ctx.getChildren()[0])
         reg: ir.Instruction = self._symbol_table.getTableEntry(ctx.getName()).register
         while reg.type.is_pointer:
-            reg = self.block.load(reg, name= reg.name)
+            reg = self.block.load(reg, name=reg.name)
         return reg
 
     def visitStringNode(self, ctx: StringNode):
@@ -317,8 +355,6 @@ class llvmVisitor(AbsASTVisitor):
 
         return self.compOp(ctx, '<')
 
-
-
     def runLLVM(self):
         llvm.initialize()
         llvm.initialize_native_target()
@@ -335,8 +371,9 @@ class llvmVisitor(AbsASTVisitor):
 
     def convertTo(self, value, ctx):
         if ctx.getLLVMType() != value.type:
-            if ctx.getLLVMType() == cfloat and value.type == i32:
+            ctxtype= ctx.getLLVMType()
+            if ctxtype == cfloat and value.type == i32:
                 return self.block.sitofp(value, ctx.getLLVMType())
-            if ctx.getLLVMType() == i32 and value.type == cfloat:
+            if ctxtype == i32 and value.type == cfloat:
                 return self.block.fptosi(value, ctx.getLLVMType())
         return value

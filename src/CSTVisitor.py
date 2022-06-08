@@ -12,7 +12,14 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.symbol_table = None
         self.visitedmain = False
         self.counter = 0
+    def visitDecr(self, ctx:CGrammarParser.DecrContext):
+        return BinMinNode()
 
+    def visitIncr(self, ctx:CGrammarParser.IncrContext):
+        return BinPlusNode()
+
+    def visitIncr_decr(self, ctx:CGrammarParser.Incr_decrContext):
+        return self.visit(ctx.children[0])
     # Visit a parse tree produced by CGrammarParser#startRule.
     def visitStartRule(self, ctx: CGrammarParser.StartRuleContext):
         # print("visitStartRule")
@@ -41,6 +48,18 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 expr = self.visit(ctx.mathExpr()[0])
                 op.setChild(expr)
                 return op
+            elif ctx.incr_decr():
+                child1 = self.visit(ctx.mathExpr()[0])
+                child2 = TermIntNode(1)
+                operator_node = self.visit(ctx.incr_decr())
+                operator_node.setChildren(child1, child2)
+                ass = AssNode()
+                ass.rhs  = operator_node
+                ass.lhs  = child1
+
+
+                return ass
+
 
         elif count == 3:
             if ctx.LBR() and ctx.RBR() and ctx.mathExpr():
@@ -66,7 +85,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             operator_node.setChildren(child1, child2)
             if ctx.binOpPrio1() or ctx.binOpPrio2():
                 operatorChildren = operator_node.getChildren()
-                if type(operatorChildren[0] == PointerNode and type(operatorChildren[1]) == PointerNode):
+                if type(operatorChildren[0]) == PointerNode and type(operatorChildren[1]) == PointerNode:
                     raise pointerOperationError(operator_node.toString())
             return operator_node
         else:
@@ -393,12 +412,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         return node
 
     def visitWhilestatement(self, ctx: CGrammarParser.WhilestatementContext):
-        condition = ConditionNode()
         node = WhilestatementNode()
         child = self.visit(ctx.expr())
-        condition.addChild(child)
         codeblock = self.visit(ctx.body())
-        node.setCondition(condition)
+        node.setCondition(child)
         node.setBlock(codeblock)
         return node
 

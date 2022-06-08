@@ -17,6 +17,8 @@ class AbsASTVisitor:
             return self.visitUnOpNode(ctx)
         elif isinstance(ctx, AssNode):
             return self.visitAssNode(ctx)
+        elif isinstance(ctx, ConditionNode):
+            return self.visitConditionNode(ctx)
         elif isinstance(ctx, ArgumentsNode):
             return self.visitArgumentNode(ctx)
 
@@ -65,6 +67,8 @@ class AbsASTVisitor:
                 return self.visitFunctionDefinition(ctx)
             return self.visitFunctionNode(ctx)
 
+        elif isinstance(ctx, ReturnNode):
+            return self.visitReturnNode(ctx)
         elif isinstance(ctx, RefNode):
             return self.visitRefNode(ctx)
         elif isinstance(ctx, StatementNode):
@@ -202,12 +206,18 @@ class AbsASTVisitor:
     def visitIfElsestatementNode(self, ctx: IfElseStatementNode):
         pass
 
+    def visitReturnNode(self, ctx: ReturnNode):
+        pass
+
     def pushSymbolTable(self, symbol_table):
         symbol_table.parent = self._symbol_table
         self._symbol_table = symbol_table
 
     def popSymbolTable(self):
         self._symbol_table = self._symbol_table.parent
+
+    def visitConditionNode(self, ctx):
+        pass
 
 
 class ASTUsageVisitor(AbsASTVisitor):

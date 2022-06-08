@@ -1,4 +1,8 @@
+import copy
+import sys
+
 from Nodes.AbsNode import *
+from llvmTypes import *
 
 
 class TermNode(AbsNode):
@@ -7,6 +11,10 @@ class TermNode(AbsNode):
 
     @staticmethod
     def getLLVMType():
+        pass
+
+    @staticmethod
+    def getType():
         pass
 
     def checkParent(self, parent):
@@ -125,7 +133,9 @@ class TermIntNode(TermNode):
         other = self.convertNode(other)
         self.setValue(self.value // other.value)
         return self
-
+    @staticmethod
+    def getType():
+        return 'int'
     def llvmValue(self):
         return ir.Constant(i32, self.value)
 
@@ -167,6 +177,9 @@ class TermIntNode(TermNode):
 
 
 class TermFloatNode(TermNode):
+    @staticmethod
+    def getType():
+        return 'float'
     def llvmValue(self):
         return ir.Constant(cfloat, self.value)
 
@@ -202,6 +215,9 @@ class TermFloatNode(TermNode):
 
 
 class TermCharNode(TermNode):
+    @staticmethod
+    def getType():
+        return 'char'
     @staticmethod
     def getLLVMType():
         return cchar

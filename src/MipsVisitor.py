@@ -1,32 +1,63 @@
 from ASTVisitor import AbsASTVisitor
 from Nodes.Nodes import *
 
-
 class Register:
     name: str
     number: int
+    free: bool
     value: TermNode
 
     def __init__(self, name, number):
         self.name = name
         self.number = number
+        self.free = True
 
 
+class glob:
+    val:str
+    name:str
+    def __init__(self,val,name):
+        self.val = val
+        self.name= name
+    def getValue(self):
+        return self.val
+class ASCIIZ(glob):
+    @staticmethod
+    def getType():
+        return 'asciiz'
+    def __init__(self, val, name):
+        super().__init__(val, name)
+
+    def getValue(self):
+        return f'"{self.val}"'
+
+    def __str__(self):
+        return f'"{self.val}"'
+class FLOAT(glob):
+    @staticmethod
+    def getType():
+        return 'float'
+    def __init__(self, val, name):
+        super().__init__(val, name)
+
+    def __str__(self):
+        return f'{self.val}'
 class RegisterTable:
-    registers: dict[str: list[Register]]
+    # dict[str: list[Register]]
+    registers: dict
 
     def __init__(self):
         self.registers = {
-            'zero': [Register('zero', 0)],
-            'v': [Register(f'v{v}', v + 2) for v in range(2)],
-            'a': [Register(f'a{a}', a + 4) for a in range(4)],
-            't': [Register(f't{t}', t + 8) for t in range(8)] + [Register(f't{t + 8}', t + 23) for t in range(2)],
-            's': [Register(f's{s}', s + 16) for s in range(8)],
-            'gp': [Register('gp', 28)],
-            'sp': [Register('sp', 29)],
-            'fp': [Register('fp', 30)],
-            'ra': [Register('ra', 30)],
-            'f': [Register(f'f{f}', 32 + f) for f in range(32)]
+            '$zero': [Register('$zero', 0)],
+            '$v': [Register(f'$v{v}', v + 2) for v in range(2)],
+            '$a': [Register(f'$a{a}', a + 4) for a in range(4)],
+            '$t': [Register(f'$t{t}', t + 8) for t in range(8)] + [Register(f't{t + 8}', t + 23) for t in range(2)],
+            '$s': [Register(f'$s{s}', s + 16) for s in range(8)],
+            '$gp': [Register('$gp', 28)],
+            '$sp': [Register('$sp', 29)],
+            '$fp': [Register('$fp', 30)],
+            '$ra': [Register('$ra', 30)],
+            '$f': [Register(f'$f{f}', 32 + f) for f in range(32)]
         }
 
     def setValue(self, register: str, val: TermNode):
@@ -36,10 +67,10 @@ class RegisterTable:
         return self.findRegister(register=register).value
 
     def findRegister(self, register: str):
-        if register in ('zero', 'gp', 'sp', 'fp', 'ra'):
-            return self.registers['zero'][0]
+        if register in ('$zero', '$gp', '$sp', '$fp', '$ra'):
+            return self.registers[register][0]
         else:
-            return self.registers[register[0:1]][register[1:]]
+            return self.registers[register[0:2]][register[2:]]
 
 
 class MipsInstruction:
@@ -84,6 +115,7 @@ class LA(TwoRegMemoryInstruction):
     def __init__(self, r1, r2, offset):
         super().__init__(r1, r2, 'LA', offset)
 
+
 class OneRegInstruction(MipsInstruction):
     r = ''
 
@@ -96,10 +128,11 @@ class OneRegInstruction(MipsInstruction):
 
 
 class ImmediateInstruction(MipsInstruction):
-    r:str
-    value:int
-    operation:str
-    def __init__(self, r, operation,val):
+    r: str
+    value: int
+    operation: str
+
+    def __init__(self, r, operation, val):
         self.r = r
         self.value = val
         self.operation = operation
@@ -109,8 +142,14 @@ class ImmediateInstruction(MipsInstruction):
 
 
 class LI(ImmediateInstruction):
-    def __init__(self,reg,value):
-        super().__init__(reg,'LI',value)
+    def __init__(self, reg, value):
+        super().__init__(reg, 'li', value)
+
+class LCW1(ImmediateInstruction):
+    def __init__(self, reg, label):
+        super().__init__(reg, 'lwc1', label)
+
+
 class SW(TwoRegMemoryInstruction):
     def __init__(self, r1, r2, offset):
         super(SW, self).__init__(r1, r2, 'sw', offset)
@@ -148,7 +187,7 @@ class MoveSpToFp(MOVE):
 
 class MoveFpToSp(MOVE):
     def __init__(self):
-        super(MoveFpToSp, self).__init__('$fp', '$sp')
+        super(MoveFpToSp, self).__init__('$sp', '$fp')
 
 
 class SaveOldFramePointer(SW):
@@ -164,6 +203,7 @@ class RestoreOldFramePointer(LW):
 class J(OneRegInstruction):
     def __init__(self, r1):
         super(J, self).__init__(r1, 'J')
+
 
 class JR(OneRegInstruction):
     def __init__(self, r1):
@@ -195,6 +235,7 @@ class SUBU(TwoRegImmInstruction):
     def __init__(self, r1, r2, v):
         super(SUBU, self).__init__(r1, r2, v, 'subu')
 
+
 class ADDI(TwoRegImmInstruction):
     def __init__(self, r1, r2, v):
         super(ADDI, self).__init__(r1, r2, v, 'addi')
@@ -204,32 +245,33 @@ class AllocateXBytes(SUBU):
     def __init__(self, x):
         super(AllocateXBytes, self).__init__('$sp', '$sp', x)
 
+
 class JAL(OneRegInstruction):
     def __init__(self, label):
         super(JAL, self).__init__(operation='JAL', r=label)
 
 
 class LALab(MipsInstruction):
-    r1:str
-    label:str
+    r1: str
+    label: str
+
     def __init__(self, r1, label):
         super().__init__()
         self.r1 = r1
         self.label = label
+
     def __str__(self):
         return f'LA {self.r1}, {self.label}'
-
-
 
 
 class MipsBuilder:
     pass
 
 
-
 class MipsBlock:
     name: str
-    Instructions: list[MipsInstruction]
+    # list[MipsInstruction]
+    Instructions: list
 
     def __init__(self, name):
         self.name = name
@@ -246,30 +288,37 @@ class MipsBlock:
 
 
 # class Main(MipsBlock):
-    # def __init__(self):
-        # super().__init__('main')
-        # self.addInstruction(LA())
+# def __init__(self):
+# super().__init__('main')
+# self.addInstruction(LA())
 class Exit(MipsBlock):
     def __init__(self):
         super().__init__('exit')
         self.addInstruction(LI('$v0', 10))
         self.addInstruction(SystCall())
 
+
 class MipsModule:
-    globals = list
+    # dict[name:glob]
+    globals = dict
     Functions = list
     main: MipsBlock
     exit: MipsBlock
 
     def __init__(self):
         self.Functions = []
-        self.globals = []
+        self.globals = {}
         # self.main = Main()
         self.exit = Exit()
 
-    def addGlobal(self, name,value):
-        self.globals.append({'name':name,'value':value})
-
+    def addGlobal(self, glob,index=0):
+        n = f'{glob.name}_{index}'
+        if n in self.globals:
+            return self.addGlobal(glob,index+1)
+        else:
+            glob.name = n
+            self.globals[n] = glob
+            return n
     def addFunction(self, func):
         if func.name == 'main':
             self.main = func
@@ -281,8 +330,8 @@ class MipsModule:
               f'\n########################################################################\n\n'
 
         out += '.data\n'
-        for glob in self.globals:
-            out += f'\t{glob["name"]}: .asciiz "{glob["value"]}"\n'
+        for identifier, glob in self.globals.items():
+            out += f'\t{identifier}: .{glob.getType()} {glob.getValue()}\n'
 
         out += '\n.text\n'
         for funct in self.Functions:
@@ -293,53 +342,70 @@ class MipsModule:
 
         return out
 
+
 class StackAllocation(MipsBlock):
 
     def __init__(self, nr_regs, name):
         super().__init__(f'{name}_StackAllocation')
         self.setNrRegs(nr_regs)
 
-    def setNrRegs(self, nr_regs):
+    def setNrRegs(self, wordsToAllocate):
         self.Instructions = []
         temp = MipsInstruction()
         temp.setComment('Allocate Stack Recources')
         self.addInstruction(temp)
         self.addInstruction(SaveOldFramePointer())
-        self.addInstruction(MoveFpToSp())
-        self.addInstruction(AllocateXBytes(4 * nr_regs + 8))
+        self.addInstruction(MoveSpToFp())
+
+        self.addInstruction(AllocateXBytes(4 * wordsToAllocate + 8))
         self.addInstruction(StoreReturnAddress())
-        for reg in range(0, nr_regs):
-            self.addInstruction(SW(f'$s{reg}', f'$fp', -4 * reg - 8))
+        temp = MipsInstruction()
+        temp.setComment('Start function')
+        self.addInstruction(temp)
+
+        # for reg in range(0, nr_regs):
+        #     self.addInstruction(SW(f'$s{reg}', f'$fp', -4 * reg - 8))
 
 
 class StackRestoration(MipsBlock):
-    def __init__(self, nr_regs, name):
+    def __init__(self, name):
         super().__init__(f'{name}_Exit')
-        self.setNrRegs(nr_regs)
-
-    def setNrRegs(self, nr_regs):
         self.Instructions = []
         temp = MipsInstruction()
         temp.setComment('Restore Stack Recources')
         self.addInstruction(temp)
-        for reg in range(nr_regs - 1, -1, -1):
-            self.addInstruction(LW(f'$s{reg}', f'$fp', -4 * reg - 8))
+        # for reg in range(nr_regs - 1, -1, -1):
+        #     self.addInstruction(LW(f'$s{reg}', f'$fp', -4 * reg - 8))
 
         self.addInstruction(RestoreReturnAddress())
-        self.addInstruction(MoveSpToFp())
+        self.addInstruction(MoveFpToSp())
         self.addInstruction(RestoreOldFramePointer())
-        self.addInstruction(Return())
+        if name != 'main':
+            self.addInstruction(Return())
+
+
+class MemoryLocation:
+    base: str
+    offset: int
+
+    def __init__(self, base, offset):
+        self.base = base
+        self.offset = offset
+
+    def __str__(self):
+        return f'{self.offset}({self.base})'
 
 
 class MipsFunction:
-    blocks: list[MipsBlock]
+    # list[MipsBlock]
+    blocks: list
     name: str
 
     def __init__(self, name, size):
         self.blocks = []
-        if name != 'main':
-            self.blocks.append(StackAllocation(name=name, nr_regs=size))
-            self.blocks.append(StackRestoration(name=name, nr_regs=size))
+        self.blocks.append(StackAllocation(name=name, nr_regs=size))
+        self.blocks.append(StackRestoration(name=name))
+
         self.name = name
         self.size = size
 
@@ -368,14 +434,17 @@ def GrabArgs(arguments, MipsBlock):
     for argument in range(arguments):
         MipsBlock.addInstruction(MOVE(f'$s{argument}', f'$a{argument}'))
 
+
 class BEQ(MipsInstruction):
-    r1:str
-    r2:str
-    branch_label:str
-    def __init__(self,r1,r2,branch_label):
+    r1: str
+    r2: str
+    branch_label: str
+
+    def __init__(self, r1, r2, branch_label):
         self.r1 = r1
         self.r2 = r2
         self.branch_label = branch_label
+
     def __str__(self):
         return f'beq\t{self.r1}, {self.r2}, {self.branch_label}'
 
@@ -398,9 +467,9 @@ class MipsPrintF(MipsFunction):
         buffer.addInstruction(i)
 
         loop = MipsBlock('printf_loop')
-        loop.addInstruction(LB('$a0','$t0',0))
-        loop.addInstruction(BEQ('$a0','$zero','printf_Exit'))
-        loop.addInstruction(ADDI('$t0','$t0',1))
+        loop.addInstruction(LB('$a0', '$t0', 0))
+        loop.addInstruction(BEQ('$a0', '$zero', 'printf_Exit'))
+        loop.addInstruction(ADDI('$t0', '$t0', 1))
 
         printf_char = MipsBlock('printf_char')
 
@@ -426,6 +495,7 @@ class MipsVisitor(AbsASTVisitor):
     globals: list
     _symbol_table = None
     printf = MipsPrintF()
+    registers = RegisterTable()
 
     def __init__(self, ctx: CodeblockNode, filepath: str, run=False):
         self.globals = []
@@ -462,24 +532,24 @@ class MipsVisitor(AbsASTVisitor):
     def visitFunctionDefinition(self, ctx: FunctionDefinition):
 
         self.pushSymbolTable(ctx.symbol_table)
+        self.current_function = MipsFunction(name=ctx.functionName, size=ctx.spaceToAllocate())
+        self.module.addFunction(self.current_function)
+        newblock = MipsBlock(f"function_start_{ctx.getName()}")
+        block = self.current_function.append_basic_block(newblock)
+        self.block = block
 
         # for variable in self.globals:
         #     a: ir.AllocaInstr = self.block.alloca(variable.type, 1, variable.name)
         #
-        s = 0
+        s = -4
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
             # a: ir.AllocaInstr = self.block.alloca(varnode.getLLVMType(), 1, varnode.getName())
-            variable.register = f'$s{s}'
-            s += 1
+            s -= 4
+            reg = s
+            variable.register = reg
 
         # and declare a function named "main" inside it
-        self.current_function = MipsFunction(name=ctx.functionName, size=s)
-        self.module.addFunction(self.current_function)
-        newblock = MipsBlock(f"function_start_{ctx.getName()}")
-
-        block = self.current_function.append_basic_block(newblock)
-        self.block = block
 
         self.default(ctx)
 
@@ -507,12 +577,16 @@ class MipsVisitor(AbsASTVisitor):
 
     def visitUnOpNode(self, ctx: UnOpNode):
         pass
+    def visitReturnNode(self, ctx: ReturnNode):
+        val = self.visit(ctx.child)
+        self.block.addInstruction(LI('$v0',val))
+        return
 
     def visitVariableNameNode(self, ctx: VariableNameNode):
         lookasigned = ctx.rvalue
         table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), lookasigned)
-        ins: ir.Instruction = table_entry.register
-        return self.block.load(ins, ins.name)
+        ins = table_entry.register
+        return MemoryLocation('$sp',ins)
 
     def visitVariableIntNode(self, ctx: VariableIntNode):
         return self.visitVariableNode(ctx)
@@ -531,16 +605,46 @@ class MipsVisitor(AbsASTVisitor):
 
     def visitPrintfNode(self, ctx: PrintfNode):
         fmt_args = self.visit(ctx.argumentNode)
-        string_to_pr:str = fmt_args[0]
+        processing: str = fmt_args[0]
+        identifier:str
+        processing = ('%r' % processing)[1:-1]
+        # processing = re.sub(r'\\', r'a', processing)
+        # processing= processing.encode('UTF-8').replace('\\','\\\\')
+        # processing= processing.decode('ascii')
+        temp: list[str]
         str_ind = 0
         for arg_ind in range(1, len(fmt_args)):
-            str_ind = string_to_pr.find('%',str_ind,len(string_to_pr)+1)
-            if string_to_pr[str_ind + 1] == 'd':
-                string_to_pr = string_to_pr.replace("%d", f'{fmt_args[arg_ind]}', 1)
-            elif string_to_pr[str_ind + 1] == 'f':
-                string_to_pr= string_to_pr.replace("%f", f'{fmt_args[arg_ind]}', 1)
-        self.module.addGlobal(name=f'str{id(string_to_pr)}',value=string_to_pr)
-        self.block.addInstruction(LALab('$a0', f'str{id(string_to_pr)}'))
+            str_ind = processing.find('%', str_ind, len(processing) + 1)
+            if processing[str_ind + 1] == 'd':
+                temp = processing.split("%d", 1)
+
+                identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=temp[0]) )
+                self.block.addInstruction(LALab('$a0', f'{identifier}'))
+                self.block.addInstruction(JAL('printf'))
+                if isinstance(fmt_args[arg_ind], int):
+                    self.block.addInstruction(LI('$a0', fmt_args[arg_ind]))
+                else:
+                    self.block.addInstruction(LW('$a0',fmt_args[arg_ind].base,fmt_args[arg_ind].offset))
+                self.block.addInstruction(LI('$v0', 1))
+                self.block.addInstruction(SystCall())
+
+                processing = temp[1]
+            elif processing[str_ind + 1] == 'f':
+                temp = processing.split("%f", 1)
+                identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=temp[0]))
+                self.block.addInstruction(LALab('$a0', f'{identifier}'))
+                self.block.addInstruction(JAL('printf'))
+                if isinstance(fmt_args[arg_ind], float):
+                    label = self.module.addGlobal(FLOAT(name=f'float', val=fmt_args[arg_ind]))
+                    self.block.addInstruction(LCW1('$f12', label))
+                else:
+                    self.block.addInstruction(LW('$f12',fmt_args[arg_ind].base,fmt_args[arg_ind].offset))
+                self.block.addInstruction(LI('$v0', 2))
+                self.block.addInstruction(SystCall())
+
+                processing = temp[1]
+        identifier = self.module.addGlobal(ASCIIZ(name='str', val=processing))
+        self.block.addInstruction(LALab('$a0', identifier))
         self.block.addInstruction(JAL('printf'))
         return
 
@@ -600,6 +704,7 @@ class MipsVisitor(AbsASTVisitor):
     def visitAssNode(self, ctx: AssNode):
         node: VariableEntry = self._symbol_table.getTableEntry(ctx.lhs.getName())
         value: ir.Instruction
+        # todo
         if not self.current_function:
             gv = ir.GlobalVariable(module=self.module, name=ctx.lhs.getName(), typ=ctx.rhs.getLLVMType())
             gv.initializer = ctx.rhs.llvmValue()
@@ -608,9 +713,10 @@ class MipsVisitor(AbsASTVisitor):
             return
 
         if isinstance(ctx.rhs, TermNode):
-            node.stored_value = ctx.rhs.llvmValue()
-
-            return self.block.store(value=node.stored_value, ptr=node.register)
+            node.stored_value = ctx.rhs.value
+            self.block.addInstruction(LI(value=node.stored_value, reg='$t0'))
+            self.block.addInstruction(SW(r1='$t0', r2='$sp', offset=node.register))
+            return
         value = self.visit(ctx.rhs)
         if value.type.is_pointer and not isinstance(ctx.rhs, RefNode):
             value = self.block.load(value, value.name)

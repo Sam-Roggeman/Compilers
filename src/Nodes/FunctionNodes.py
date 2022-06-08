@@ -1,6 +1,6 @@
-from Nodes.AbsNode import AbsNode
 import SymbolTable
 from Errors import *
+from Nodes.AbsNode import AbsNode
 
 
 class FunctionNode(AbsNode):
@@ -26,6 +26,7 @@ class FunctionNode(AbsNode):
     def fold(self):
         self.argumentNode = self.argumentNode.fold()
         return self
+
 
 class FunctionCall(FunctionNode):
     def __init__(self,name):
@@ -81,6 +82,13 @@ class FunctionDefinition(FunctionNode):
                 type(self.functionbody.body[-1]) == ReturnNode \
                 and self.functionbody.body[-1].getChildren()[0] != None:
             raise returnTypeMismatch("")
+
+    def spaceToAllocate(self):
+        space = 0
+        for var in self.symbol_table.variables.values():
+            space += var.node.getSize()
+        return space
+
 
 class FunctionBody(AbsNode):
     body: list

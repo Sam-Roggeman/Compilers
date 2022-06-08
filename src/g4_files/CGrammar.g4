@@ -73,6 +73,7 @@ binOp: binOpPrio2
     ;
 
 mathExpr : unOp mathExpr
+    | mathExpr incr_decr
     // (/,*,%)
     | mathExpr binOpPrio2 mathExpr
     // (+,-)
@@ -81,11 +82,16 @@ mathExpr : unOp mathExpr
     | mathExpr compOp mathExpr
         // (||,&&)
     | mathExpr logOp mathExpr
+
+    | incr_decr mathExpr
     // ((,))
     | LBR mathExpr RBR
     | literal
     | variable (array)?
     ;
+incr_decr: incr|decr;
+decr: MIN MIN;
+incr: PLUS PLUS;
 pointer: MUL;
 pointertype: (CONST)? types_specifier pointer | pointertype pointer;
 dereffedvariable: deref variable;
