@@ -7,9 +7,11 @@ from ErrorVisitor import *
 from CSTVisitor import CGrammarVisitorImplementation
 from AST import *
 from ASTVisitor import *
+import argparse
 
-def main(argv):
-    name = argv[1]
+
+def main():
+    name = args.FilePath
     inputlocation = name
     if "./inputFiles/" not in name:
         inputlocation = "./inputFiles/" + name
@@ -25,9 +27,11 @@ def main(argv):
     parser.addErrorListener(ErrorListener)
     tree = parser.startRule()
     visitor = CGrammarVisitorImplementation()
-    a = AST(root=visitor.visitStartRule(ctx=tree), name=name)
-    a.exportToLLVM(run=True)
-    # a.exportToMips()
+    a = AST(root=visitor.visitStartRule(ctx=tree), name=name, toDot=args.Dot)
+    if args.LLVM:
+        a.exportToLLVM(run=args.RunLLVM)
+    if args.Mips:
+        a.exportToMips()
 
 
 def printfTest():
@@ -60,8 +64,16 @@ def printfTest():
     builder.ret_void()
 
 
-
-
 if __name__ == '__main__':
-    main(sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('FilePath')
+    parser.add_argument("-M", "--Mips", help="Export To Mips", required=False, default="", action='store_true')
+    parser.add_argument("-D", "--Dot", help="Trees to Dot", required=False, default="", action='store_true')
+    parser.add_argument("-L", "--LLVM", help="Export To LLVM", required=False, default="", action='store_true')
+    parser.add_argument("-R", "--RunLLVM", help="Run Exported LLVMCode", required=False, default="",
+                        action='store_true')
+
+    argument = parser.parse_args()
+    args = parser.parse_args()
+    main()
     # printfTest()

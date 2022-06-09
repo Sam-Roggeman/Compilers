@@ -10,7 +10,6 @@ from llvmbuilder import LLVMBuilder
 from llvmTypes import *
 
 
-
 class llvmVisitor(AbsASTVisitor):
     builder: LLVMBuilder
     block: ir.IRBuilder
@@ -18,6 +17,8 @@ class llvmVisitor(AbsASTVisitor):
     current_function: ir.Function
     globals: list
     _symbol_table = None
+    continueBlock: ir.Block
+    breakBlock: ir.Block
 
     def __init__(self, ctx: CodeblockNode, filepath: str, run=False):
         self.printf: ir.Function = None
@@ -49,7 +50,7 @@ class llvmVisitor(AbsASTVisitor):
         for child in ctx.getChildren():
             self.visit(child)
 
-    def llvmType(self, type:str):
+    def llvmType(self, type: str):
         if type == 'void':
             return cvoid
         if type == 'int':
@@ -58,7 +59,7 @@ class llvmVisitor(AbsASTVisitor):
             return cchar
 
     def visitFunctionDefinition(self, ctx: FunctionDefinition):
-        fnty = ir.FunctionType(self.llvmType(ctx.returntype), () )
+        fnty = ir.FunctionType(self.llvmType(ctx.returntype), ())
         self.current_function = ir.Function(self.module, fnty, name=ctx.getName())
         self._symbol_table.getFunction(ctx.getName()).memorylocation = self.current_function
         block = self.current_function.append_basic_block(name=f"main-entry-{ctx.getName()}")
@@ -76,22 +77,29 @@ class llvmVisitor(AbsASTVisitor):
 
         self.default(ctx)
         if ctx.getName() == 'main' and not self.block.block.is_terminated:
-            self.block.ret(ir.Constant(i32,1))
+            self.block.ret(ir.Constant(i32, 1))
         if ctx.returntype == 'void' and not self.block.block.is_terminated:
             self.block.ret_void()
 
         self.popSymbolTable()
 
+    def visitBreakNode(self, ctx: BreakNode):
+        self.block.branch(self.breakBlock)
+
+    def visitContinueNode(self, ctx: ContinueNode):
+        self.block.branch(self.continueBlock)
+
     def visitConditionNode(self, ctx):
         pass
-
     def visitWhilestatementNode(self, ctx: WhilestatementNode):
         self.pushSymbolTable(ctx.symbol_table)
-
-
         cond_block = self.block.function.append_basic_block(name='while_condition')
         while_block = self.block.function.append_basic_block(name='while')
         elihw_block = self.block.function.append_basic_block(name='elihw')
+
+        self.breakBlock = elihw_block
+        self.continueBlock = cond_block
+
         self.block.branch(cond_block)
         self.block = ir.IRBuilder(cond_block)
         condition = self.visit(ctx.condition)
@@ -107,7 +115,6 @@ class llvmVisitor(AbsASTVisitor):
         self.popSymbolTable()
 
         return
-
 
         a = self.visit(ctx.condition)
         print("a")
@@ -156,7 +163,7 @@ class llvmVisitor(AbsASTVisitor):
     def visitFunctionNode(self, ctx: FunctionNode):
         functionnode = self._symbol_table.getFunction(ctx.functionName)
         fmt_args = self.visit(ctx.argumentNode)
-        self.block.call(functionnode.memorylocation,fmt_args)
+        self.block.call(functionnode.memorylocation, fmt_args)
         return 1
 
     def visitPrintfNode(self, ctx: PrintfNode):
@@ -386,7 +393,7 @@ class llvmVisitor(AbsASTVisitor):
 
     def convertTo(self, value, ctx):
         if ctx.getLLVMType() != value.type:
-            ctxtype= ctx.getLLVMType()
+            ctxtype = ctx.getLLVMType()
             if ctxtype == cfloat and value.type == i32:
                 return self.block.sitofp(value, ctx.getLLVMType())
             if ctxtype == i32 and value.type == cfloat:

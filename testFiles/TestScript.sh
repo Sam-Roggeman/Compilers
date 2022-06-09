@@ -63,7 +63,7 @@ fi
     name=${name::-2}
 
 #    execute the compiler and save the output (stderr and stdout) to the testoutput
-    python3 ./src/main.py "$f" &> ./testFiles/${project}/testOutput/"${name}.txt";
+    python3 ./src/main.py "$f" -L -R &> ./testFiles/${project}/testOutput/"${name}.txt";
 #    compare the output of the test with the expected output, split the output and potential errors
     python3 ./src/CompareTests.py "./testFiles/${project}/expectedOutput/${name}.txt" "./testFiles/${project}/testOutput/${name}.txt" 1> ./temp1.txt 2>./temp2.txt
 

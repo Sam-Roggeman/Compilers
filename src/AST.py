@@ -1,9 +1,7 @@
 import graphviz
-from SymbolTable import *
 from ASTVisitor import *
 from llvmVisitor import *
 from MipsVisitor import *
-
 
 class AST:
     # todo parent
@@ -13,12 +11,14 @@ class AST:
     _working_node = None
     _last_entered_treenode = None
 
-    def __init__(self, root: ProgramNode, name):
+    def __init__(self, root: ProgramNode, name, toDot=True):
         self._name = name
         self._root = root
+        self._toDot = toDot
         self._symbol_table = self._root.getSymbolTable()
         self._root.solveTypes()
-        self.toDot(name="AST")
+        if toDot:
+            self.toDot(name="AST")
         self.optimize()
 
 
@@ -70,7 +70,8 @@ class AST:
         # ASTConstVisitor(self.getRoot(), self.getSymbolTable(()))
         self._symbol_table.setConst()
         self.fold()
-        self.toDot(name="Optimized")
+        if self._toDot:
+            self.toDot(name="Optimized")
 
     def getRoot(self):
         return self._root

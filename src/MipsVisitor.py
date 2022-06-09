@@ -1,6 +1,7 @@
 from ASTVisitor import AbsASTVisitor
 from Nodes.Nodes import *
 
+
 class Register:
     name: str
     number: int
@@ -14,17 +15,22 @@ class Register:
 
 
 class glob:
-    val:str
-    name:str
-    def __init__(self,val,name):
+    val: str
+    name: str
+
+    def __init__(self, val, name):
         self.val = val
-        self.name= name
+        self.name = name
+
     def getValue(self):
         return self.val
+
+
 class ASCIIZ(glob):
     @staticmethod
     def getType():
         return 'asciiz'
+
     def __init__(self, val, name):
         super().__init__(val, name)
 
@@ -33,15 +39,20 @@ class ASCIIZ(glob):
 
     def __str__(self):
         return f'"{self.val}"'
+
+
 class FLOAT(glob):
     @staticmethod
     def getType():
         return 'float'
+
     def __init__(self, val, name):
         super().__init__(val, name)
 
     def __str__(self):
         return f'{self.val}'
+
+
 class RegisterTable:
     # dict[str: list[Register]]
     registers: dict
@@ -144,6 +155,7 @@ class ImmediateInstruction(MipsInstruction):
 class LI(ImmediateInstruction):
     def __init__(self, reg, value):
         super().__init__(reg, 'li', value)
+
 
 class LCW1(ImmediateInstruction):
     def __init__(self, reg, label):
@@ -311,14 +323,15 @@ class MipsModule:
         # self.main = Main()
         self.exit = Exit()
 
-    def addGlobal(self, glob,index=0):
+    def addGlobal(self, glob, index=0):
         n = f'{glob.name}_{index}'
         if n in self.globals:
-            return self.addGlobal(glob,index+1)
+            return self.addGlobal(glob, index + 1)
         else:
             glob.name = n
             self.globals[n] = glob
             return n
+
     def addFunction(self, func):
         if func.name == 'main':
             self.main = func
@@ -400,6 +413,7 @@ class MipsFunction:
     # list[MipsBlock]
     blocks: list
     name: str
+    memoryptr: int
 
     def __init__(self, name, size):
         self.blocks = []
@@ -488,6 +502,49 @@ class MipsPrintF(MipsFunction):
         self.append_basic_block(printf_char)
 
 
+class ThreeRegInstruction(MipsInstruction):
+    r1: str
+    r2: str
+    r3: str
+    op: str
+
+    def __init__(self, r1, r2, r3, op):
+        self.r3 = r3
+        self.r2 = r2
+        self.r1 = r1
+        self.op = op
+
+    def __str__(self):
+        return f'{self.op} {self.r1}, {self.r2}, {self.r3}'
+
+
+class Cmp(ThreeRegInstruction):
+    def __init__(self, r1, r2, r3, op):
+        if op == '<':
+            op = 'slt'
+        elif op == '>=':
+            op = 'sge'
+        elif op == '==':
+            op = 'seq'
+        elif op == '!=':
+            op = 'sne'
+        else:
+            raise Exception
+        super().__init__(r1, r2, r3, op)
+
+
+class AND(ThreeRegInstruction):
+    def __init__(self, r1, r2, r3):
+        super().__init__(r1, r2, r3, op='and')
+
+
+class BNE(ThreeRegInstruction):
+    def __init__(self, r1, r2, truebr):
+        if r1 is None:
+            raise Exception
+        super().__init__(r1=r1, r2=r2, r3=truebr, op='bne')
+
+
 class MipsVisitor(AbsASTVisitor):
     module: MipsModule
     builder: MipsBuilder
@@ -548,7 +605,7 @@ class MipsVisitor(AbsASTVisitor):
             s -= 4
             reg = s
             variable.register = reg
-
+        self.current_function.memoryptr = s
         # and declare a function named "main" inside it
 
         self.default(ctx)
@@ -577,16 +634,17 @@ class MipsVisitor(AbsASTVisitor):
 
     def visitUnOpNode(self, ctx: UnOpNode):
         pass
+
     def visitReturnNode(self, ctx: ReturnNode):
         val = self.visit(ctx.child)
-        self.block.addInstruction(LI('$v0',val))
+        self.block.addInstruction(LI('$v0', val))
         return
 
     def visitVariableNameNode(self, ctx: VariableNameNode):
         lookasigned = ctx.rvalue
         table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), lookasigned)
         ins = table_entry.register
-        return MemoryLocation('$sp',ins)
+        return MemoryLocation('$sp', ins)
 
     def visitVariableIntNode(self, ctx: VariableIntNode):
         return self.visitVariableNode(ctx)
@@ -603,10 +661,15 @@ class MipsVisitor(AbsASTVisitor):
     def visitFunctionNode(self, ctx: FunctionNode):
         pass
 
+    def callprintf(self, str):
+        identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=str))
+        self.block.addInstruction(LALab('$a0', f'{identifier}'))
+        self.block.addInstruction(JAL('printf'))
+
     def visitPrintfNode(self, ctx: PrintfNode):
         fmt_args = self.visit(ctx.argumentNode)
         processing: str = fmt_args[0]
-        identifier:str
+        identifier: str
         processing = ('%r' % processing)[1:-1]
         # processing = re.sub(r'\\', r'a', processing)
         # processing= processing.encode('UTF-8').replace('\\','\\\\')
@@ -617,32 +680,35 @@ class MipsVisitor(AbsASTVisitor):
             str_ind = processing.find('%', str_ind, len(processing) + 1)
             if processing[str_ind + 1] == 'd':
                 temp = processing.split("%d", 1)
+                self.callprintf(temp[0])
 
-                identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=temp[0]) )
-                self.block.addInstruction(LALab('$a0', f'{identifier}'))
-                self.block.addInstruction(JAL('printf'))
                 if isinstance(fmt_args[arg_ind], int):
                     self.block.addInstruction(LI('$a0', fmt_args[arg_ind]))
                 else:
-                    self.block.addInstruction(LW('$a0',fmt_args[arg_ind].base,fmt_args[arg_ind].offset))
+                    self.block.addInstruction(LW('$a0', fmt_args[arg_ind].base, fmt_args[arg_ind].offset))
                 self.block.addInstruction(LI('$v0', 1))
-                self.block.addInstruction(SystCall())
+            elif processing[str_ind + 1] == 'c':
+                temp = processing.split("%c", 1)
+                self.callprintf(temp[0])
 
-                processing = temp[1]
+                if isinstance(fmt_args[arg_ind], str) and len(fmt_args[arg_ind]) == 1:
+                    self.block.addInstruction(LI('$a0', '%r' % fmt_args[arg_ind]))
+                else:
+                    self.block.addInstruction(LW('$a0', fmt_args[arg_ind].base, fmt_args[arg_ind].offset))
+                self.block.addInstruction(LI('$v0', 11))
             elif processing[str_ind + 1] == 'f':
                 temp = processing.split("%f", 1)
-                identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=temp[0]))
-                self.block.addInstruction(LALab('$a0', f'{identifier}'))
-                self.block.addInstruction(JAL('printf'))
+                self.callprintf(temp[0])
                 if isinstance(fmt_args[arg_ind], float):
                     label = self.module.addGlobal(FLOAT(name=f'float', val=fmt_args[arg_ind]))
                     self.block.addInstruction(LCW1('$f12', label))
                 else:
-                    self.block.addInstruction(LW('$f12',fmt_args[arg_ind].base,fmt_args[arg_ind].offset))
+                    self.block.addInstruction(LW('$f12', fmt_args[arg_ind].base, fmt_args[arg_ind].offset))
                 self.block.addInstruction(LI('$v0', 2))
-                self.block.addInstruction(SystCall())
-
-                processing = temp[1]
+            else:
+                continue
+            self.block.addInstruction(SystCall())
+            processing = temp[1]
         identifier = self.module.addGlobal(ASCIIZ(name='str', val=processing))
         self.block.addInstruction(LALab('$a0', identifier))
         self.block.addInstruction(JAL('printf'))
@@ -663,40 +729,47 @@ class MipsVisitor(AbsASTVisitor):
         self.pushSymbolTable(ctx.symbol_table)
 
         condition = self.visit(ctx.condition)
-        if_block = self.block.function.append_basic_block(name='if')
-        elseif_block = self.block.function.append_basic_block(name='elseif')
-        endif_block = self.block.function.append_basic_block(name='endif')
 
-        self.block.cbranch(cond=condition, truebr=if_block, falsebr=elseif_block)
+        if_block = MipsBlock(f"if_line_{ctx.getMetaData().getLine()}")
+        elseif_block = MipsBlock(f"elseif_line_{ctx.getMetaData().getLine()}")
+        endif_block = MipsBlock(f"endif_line_{ctx.getMetaData().getStopLine()}")
 
-        self.block = ir.IRBuilder(if_block)
+        self.block.addInstruction(BNE(r1=condition, r2='$zero', truebr=if_block.name))
+        self.block.addInstruction(J(elseif_block.name))
+
+        self.current_function.append_basic_block(if_block)
+        self.block = if_block
         self.visitCodeBlockNode(ctx.block)
-        self.block.branch(endif_block)
+        self.block.addInstruction(J(endif_block.name))
 
-        self.block = ir.IRBuilder(elseif_block)
+        self.current_function.append_basic_block(elseif_block)
+        self.block = elseif_block
         self.visitCodeBlockNode(ctx.else_statement.block)
-        self.block.branch(endif_block)
+        self.block.addInstruction(J(endif_block.name))
 
-        self.block = ir.IRBuilder(endif_block)
+        self.current_function.append_basic_block(endif_block)
+        self.block = endif_block
 
         self.popSymbolTable()
 
     def visitIfstatementNode(self, ctx: IfstatementNode):
         self.pushSymbolTable(ctx.symbol_table)
         condition = self.visit(ctx.condition)
-        if condition.type == i32:
-            condition = self.block.icmp_signed("!=", condition, ir.Constant(i32, 0))
 
-        if_block = self.block.function.append_basic_block(name='if')
-        endif_block = self.block.function.append_basic_block(name='endif')
+        if_block = MipsBlock(f"if_line_{ctx.getMetaData().getLine()}")
+        self.current_function.append_basic_block(if_block)
+        endif_block = MipsBlock(f"endif_line_{ctx.getMetaData().getStopLine()}")
 
-        self.block.cbranch(cond=condition, truebr=if_block, falsebr=endif_block)
+        self.block.addInstruction(BNE(r1=condition, r2='$zero', truebr=if_block.name))
+        self.block.addInstruction(J(endif_block.name))
+        # self.block.cbranch(cond=condition, truebr=if_block, falsebr=endif_block)
 
-        self.block = ir.IRBuilder(if_block)
+        self.block = if_block
         self.visitCodeBlockNode(ctx.block)
-        self.block.branch(endif_block)
+        self.block.addInstruction(J(endif_block.name))
 
-        self.block = ir.IRBuilder(endif_block)
+        endif_block = self.current_function.append_basic_block(endif_block)
+        self.block = endif_block
         self.popSymbolTable()
 
         return
@@ -767,21 +840,20 @@ class MipsVisitor(AbsASTVisitor):
         super().visitBinLTENode(ctx)
 
     def visitBinAndNode(self, ctx: BinAndNode):
-        v1: ir.Instruction = self.visit(ctx.lhs)
+        self.current_function.memoryptr -= 4
+        v1: str = self.visit(ctx.lhs)
+        self.block.addInstruction(SW(v1, '$sp', self.current_function.memoryptr))
+
         v2 = self.visit(ctx.rhs)
 
-        # copy and load to new reg
-        if v1.type.is_pointer:
-            v1 = self.block.load(v1, v1.name)
-        if v2.type.is_pointer:
-            v2 = self.block.load(v2)
+        if isinstance(v2, int):
+            self.block.addInstruction(Cmp(r1='$t0', r2='$t1', op="!=", r3='$t0'))
+        self.block.addInstruction(MOVE('$t1', '$t0'))
+        self.block.addInstruction(LW('$t0', '$sp', self.current_function.memoryptr))
 
-        if ctx.getLLVMType() != v1.type:
-            v1 = self.block.icmp_signed("!=", v1, ir.Constant(i32, 0))
-        if v2.type:
-            v2 = self.block.icmp_signed("!=", v2, ir.Constant(i32, 0))
-
-        return self.block.and_(v1, v2)
+        self.current_function.memoryptr += 4
+        self.block.addInstruction(AND('$t0', '$t0', '$t1'))
+        return '$t0'
         # c1 = self.main.sitofp(v1,cbool)
         # c2 = self.main.sitofp(v2,cbool)
         # self.main.zext(c1,i32)
@@ -827,7 +899,16 @@ class MipsVisitor(AbsASTVisitor):
     def compOp(self, ctx: BinOpNode, op):
         lhs = self.visit(ctx.lhs)
         rhs = self.visit(ctx.rhs)
-        return self.block.icmp_signed(cmpop=op, lhs=lhs, rhs=rhs)
+        if isinstance(lhs, MemoryLocation):
+            self.block.addInstruction(LW('$t0', lhs.base, lhs.offset))
+        else:
+            self.block.addInstruction(LI('$t0', lhs))
+        if isinstance(rhs, MemoryLocation):
+            self.block.addInstruction(LW('$t1', rhs.base, rhs.offset))
+        else:
+            self.block.addInstruction(LI('$t1', rhs))
+        self.block.addInstruction(Cmp(r1='$t0', r2='$t0', r3='$t1', op=f'{op}'))
+        return '$t0'
 
     def visitBinGTENode(self, ctx: BinGTENode):
         return self.compOp(ctx, '>=')

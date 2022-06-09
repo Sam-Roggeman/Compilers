@@ -5,7 +5,7 @@ import sys
 class ErrorVisitors(ErrorListener):
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        sys.stderr.write("[ERROR] Mismatched input at line: " + str(line) + ", column: " + str(column) + " expecting something else then '" +
+        sys.stderr.write("[ERROR] Mismatched input at line: " + str(line) + ", column: " + str(column) + " expecting something other than '" +
               offendingSymbol.text + "'.")
         exit(1)
 

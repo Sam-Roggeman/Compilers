@@ -21,6 +21,10 @@ class AbsASTVisitor:
             return self.visitConditionNode(ctx)
         elif isinstance(ctx, ArgumentsNode):
             return self.visitArgumentNode(ctx)
+        elif isinstance(ctx, BreakNode):
+            return self.visitBreakNode(ctx)
+        elif isinstance(ctx, ContinueNode):
+            return self.visitContinueNode(ctx)
 
         elif isinstance(ctx, BinOpNode):
             if isinstance(ctx, BinPlusNode):
@@ -217,6 +221,11 @@ class AbsASTVisitor:
         self._symbol_table = self._symbol_table.parent
 
     def visitConditionNode(self, ctx):
+        pass
+    def visitBreakNode(self, ctx:BreakNode):
+        pass
+
+    def visitContinueNode(self, ctx:ContinueNode):
         pass
 
 

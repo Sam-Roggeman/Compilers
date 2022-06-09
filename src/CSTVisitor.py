@@ -1,8 +1,8 @@
 # Generated from ./src/g4_files/CGrammar.g4 by ANTLR 4.9.3
-from g4_files.CGrammarParser import CGrammarParser
-from g4_files.CGrammarVisitor import CGrammarVisitor
 from Nodes.Nodes import *
 from SymbolTable import *
+from g4_files.CGrammarParser import CGrammarParser
+from g4_files.CGrammarVisitor import CGrammarVisitor
 
 
 # This class defines a complete generic visitor for a parse tree produced by CGrammarParser.
@@ -12,14 +12,20 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.symbol_table = None
         self.visitedmain = False
         self.counter = 0
-    def visitDecr(self, ctx:CGrammarParser.DecrContext):
+
+    def addMetaData(self, meta, node):
+        node.addMetaData(MetaData(line=meta.start.line, start_character=meta.start.column, end_line=meta.stop.line,
+                                  end_character=meta.stop.column))
+
+    def visitDecr(self, ctx: CGrammarParser.DecrContext):
         return BinMinNode()
 
-    def visitIncr(self, ctx:CGrammarParser.IncrContext):
+    def visitIncr(self, ctx: CGrammarParser.IncrContext):
         return BinPlusNode()
 
-    def visitIncr_decr(self, ctx:CGrammarParser.Incr_decrContext):
+    def visitIncr_decr(self, ctx: CGrammarParser.Incr_decrContext):
         return self.visit(ctx.children[0])
+
     # Visit a parse tree produced by CGrammarParser#startRule.
     def visitStartRule(self, ctx: CGrammarParser.StartRuleContext):
         # print("visitStartRule")
@@ -54,9 +60,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 operator_node = self.visit(ctx.incr_decr())
                 operator_node.setChildren(child1, child2)
                 ass = AssNode()
-                ass.rhs  = operator_node
-                ass.lhs  = child1
-
+                ass.rhs = operator_node
+                ass.lhs = child1
 
                 return ass
 
@@ -152,17 +157,19 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
         self.symbol_table.setValue(name, node2)
         if not node2:
+            self.addMetaData(ctx, node1)
             return node1
         assignmentNode = AssNode()
         assignmentNode.setChild(node1, 0)
         assignmentNode.setChild(node2, 1)
+        self.addMetaData(ctx, assignmentNode)
         return assignmentNode
 
     # Visit a parse tree produced by CGrammarParser#assignment.
     def visitAssignment(self, ctx: CGrammarParser.AssignmentContext):
         node1 = None
         node2 = None
-        name:str
+        name: str
         # todo error report
         if ctx.variable():
             name = ctx.variable()[0].getText()
@@ -183,6 +190,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         assinmentNode = AssNode()
         assinmentNode.setChild(node1, 0)
         assinmentNode.setChild(node2, 1)
+        self.addMetaData(ctx, assinmentNode)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#reference.
@@ -194,10 +202,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         # print("visitPoinervariable")
         if ctx.pointertype():
             a = PointerNode(self.visit(ctx.pointertype()))
+            self.addMetaData(ctx, a)
             return a
 
         elif ctx.types_specifier():
             a = PointerNode(self.visit(ctx.types_specifier()))
+            self.addMetaData(ctx, a)
             return a
 
     # Visit a parse tree produced by CGrammarParser#dereffedvariable.
@@ -209,9 +219,13 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitBinOpPrio1(self, ctx: CGrammarParser.BinOpPrio1Context):
         # print("visitBinOpPrio1")
         if ctx.PLUS():
-            return BinPlusNode()
+            a = BinPlusNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.MIN():
-            return BinMinNode()
+            a = BinMinNode()
+            self.addMetaData(ctx, a)
+            return a
         else:
             raise ValueError("Unknown Node")
 
@@ -219,11 +233,17 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitBinOpPrio2(self, ctx: CGrammarParser.BinOpPrio2Context):
         # print("visitBinOpPrio2")
         if ctx.DIS():
-            return BinDisNode()
+            a = BinDisNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.mul():
-            return BinMulNode()
+            a = BinMulNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.MOD():
-            return BinModNode()
+            a = BinModNode()
+            self.addMetaData(ctx, a)
+            return a
         else:
             raise ValueError("Unknown Node")
 
@@ -231,36 +251,58 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitUnOp(self, ctx: CGrammarParser.UnOpContext):
         # print("visitUnOp")
         if ctx.MIN():
-            return UnMinNode()
+            a = UnMinNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.PLUS():
-            return UnPlusNode()
+            a = UnPlusNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.NOT():
-            return UnNotNode()
+            a = UnNotNode()
+            self.addMetaData(ctx, a)
+            return a
 
     # Visit a parse tree produced by CGrammarParser#logOp.
     def visitLogOp(self, ctx: CGrammarParser.LogOpContext):
         # print("visitLogOp")
         if ctx.AND():
-            return BinAndNode()
+            a = BinAndNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.OR():
-            return BinOrNode()
+            a = BinOrNode()
+            self.addMetaData(ctx, a)
+            return a
 
     # Visit a parse tree produced by CGrammarParser#compOp.
     def visitCompOp(self, ctx: CGrammarParser.CompOpContext):
         # print("visitCompOp")
 
         if ctx.EQ():
-            return BinEQNode()
+            a = BinEQNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.GTE():
-            return BinGTENode()
+            a = BinGTENode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.GT():
-            return BinGTNode()
+            a = BinGTNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.LT():
-            return BinLTNode()
+            a = BinLTNode()
+            self.addMetaData(ctx, a)
+            return a
         elif ctx.LTE():
+            a = BinLTENode()
+            self.addMetaData(ctx, a)
             return BinLTENode()
         elif ctx.NE():
-            return BinNENode()
+            a = BinNENode()
+            self.addMetaData(ctx, a)
+            return a
 
     # Visit a parse tree produced by CGrammarParser#mul.
     def visitMul(self, ctx: CGrammarParser.MulContext):
@@ -281,32 +323,46 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitVariable(self, ctx: CGrammarParser.VariableContext):
         # print("visitVariable")
         node = copy.deepcopy(self.symbol_table.getVar(varname=ctx.getText()))
-
+        self.addMetaData(ctx, node)
         return node
 
     # Visit a parse tree produced by CGrammarParser#types_specifier.
     def visitTypes_specifier(self, ctx: CGrammarParser.Types_specifierContext):
         # print("visitTypes_specifier")
         if ctx.CHARTYPE():
-            return VariableCharNode()
+            node = VariableCharNode()
+            self.addMetaData(ctx, node)
+            return node
         elif ctx.FLOATTYPE():
-            return VariableFloatNode()
+            node = VariableFloatNode()
+            self.addMetaData(ctx, node)
+            return node
         elif ctx.INTTYPE():
-            return VariableIntNode()
+            node = VariableIntNode()
+            self.addMetaData(ctx, node)
+            return node
 
     # Visit a parse tree produced by CGrammarParser#literal.
     def visitLiteral(self, ctx: CGrammarParser.LiteralContext):
         # print("visitLiteral")
         if ctx.INTLit():
-            return TermIntNode(int(ctx.INTLit().getText()))
+            node = TermIntNode(int(ctx.INTLit().getText()))
+            self.addMetaData(ctx, node)
+            return node
         elif ctx.FLOATLit():
             value = ctx.FLOATLit().getText()
             floatex = value[-1]
             if floatex == 'f':
-                return TermFloatNode(float(value[:-1]))
-            return TermFloatNode(float(value))
+                node = TermFloatNode(float(value[:-1]))
+                self.addMetaData(ctx, node)
+                return node
+            node = TermFloatNode(float(value))
+            self.addMetaData(ctx, node)
+            return node
         elif ctx.CHARLit():
-            return TermCharNode(ctx.CHARLit().getText()[1:-1])
+            node = TermCharNode(ctx.CHARLit().getText()[1:-1])
+            self.addMetaData(ctx, node)
+            return node
 
     # Visit a parse tree produced by CGrammarParser#const_qualifier.
     def visitConst_qualifier(self, ctx: CGrammarParser.Const_qualifierContext):
@@ -320,8 +376,9 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         c = ctx.arguments()
         astchild = self.visit(c)
         node.addArgument(astchild)
-        if self.counter > 0 and self.counter != len(node.getArguments().getChildren())-1:
+        if self.counter > 0 and self.counter != len(node.getArguments().getChildren()) - 1:
             raise functionCallargumentMismatch
+        self.addMetaData(ctx, node)
         return node
 
     def visitArguments(self, ctx: CGrammarParser.ArgumentsContext):
@@ -330,6 +387,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         for c in children:
             astchild = self.visit(c)
             node.addChild(astchild)
+        self.addMetaData(ctx, node)
         return node
 
     def visitArg(self, ctx: CGrammarParser.ArgContext):
@@ -354,7 +412,6 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 if escaped:
                     char = bytes("\\" + char, "utf-8").decode("unicode_escape")
 
-
                 node.setNext(StringNode())
                 node.setValue(char)
                 node.getNext().setParent(node)
@@ -364,6 +421,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.setNext(None)
         a = firstnode.getFullString()
 
+        self.addMetaData(ctx, pointernode)
         return pointernode
 
     def visitFile(self, ctx: CGrammarParser.FileContext):
@@ -377,6 +435,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 node1.addchild(astchild)
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
+        self.addMetaData(ctx, node1)
         return node1
 
     def visitStatement(self, ctx: CGrammarParser.StatementContext):
@@ -397,18 +456,22 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         node.setCondition(child)
         node.setBlock(codeblock)
         self.popSymbolTable()
+        self.addMetaData(ctx, node)
 
         return node
 
-    def visitIfelsestatement(self, ctx:CGrammarParser.IfelsestatementContext):
+    def visitIfelsestatement(self, ctx: CGrammarParser.IfelsestatementContext):
         ifnode = self.visit(ctx.ifstatement())
         elsenode = self.visit(ctx.elsestatement())
-        return IfElseStatementNode(ifnode,elsenode)
+        node = IfElseStatementNode(ifnode, elsenode)
+        self.addMetaData(ctx, node)
+        return node
 
     def visitElsestatement(self, ctx: CGrammarParser.ElsestatementContext):
         node = ElsestatementNode()
         codeblock = self.visit(ctx.body())
         node.setBlock(codeblock)
+        self.addMetaData(ctx, node)
         return node
 
     def visitWhilestatement(self, ctx: CGrammarParser.WhilestatementContext):
@@ -417,12 +480,16 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         codeblock = self.visit(ctx.body())
         node.setCondition(child)
         node.setBlock(codeblock)
+        self.addMetaData(ctx, node)
         return node
-    def visitCondition(self, ctx:CGrammarParser.ConditionContext):
+
+    def visitCondition(self, ctx: CGrammarParser.ConditionContext):
         return self.visit(ctx.expr())
-    def visitInitializer(self, ctx:CGrammarParser.InitializerContext):
+
+    def visitInitializer(self, ctx: CGrammarParser.InitializerContext):
         return self.visit(ctx.expr())
-    def visitIncrementer(self, ctx:CGrammarParser.IncrementerContext):
+
+    def visitIncrementer(self, ctx: CGrammarParser.IncrementerContext):
         return self.visit(ctx.expr())
 
     def visitForstatement(self, ctx: CGrammarParser.ForstatementContext):
@@ -431,13 +498,14 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         condition = self.visit(ctx.condition())
         incrementer = self.visit(ctx.incrementer())
 
-        codeblock:CodeblockNode = self.visit(ctx.body())
+        codeblock: CodeblockNode = self.visit(ctx.body())
         codeblock.addchild(incrementer)
         node.setCondition(condition)
         node.setBlock(codeblock)
+        self.addMetaData(ctx, node)
         return initializer, node
 
-    def visitBody(self, ctx:CGrammarParser.BodyContext):
+    def visitBody(self, ctx: CGrammarParser.BodyContext):
         node1 = CodeblockNode()
         _break = False
         _continue = False
@@ -462,6 +530,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 node1.addchild(astchild)
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
+        self.addMetaData(ctx, node1)
         return node1
 
     def pushSymbolTable(self, new_symbol_table):
@@ -473,7 +542,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
 
-    def visitFunctiondefinition(self, ctx:CGrammarParser.FunctiondefinitionContext):
+    def visitFunctiondefinition(self, ctx: CGrammarParser.FunctiondefinitionContext):
         _type = ctx.getChild(0).getText()
         _name = ctx.getChild(1).getText()
         _arguments = ctx.arguments()
@@ -495,9 +564,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.symbol_table.appendFunction(node)
         if _name == "main":
             self.setVisitedMain()
+        self.addMetaData(ctx, node)
         return node
 
-    def visitFunctionbody(self, ctx:CGrammarParser.FunctionbodyContext):
+    def visitFunctionbody(self, ctx: CGrammarParser.FunctionbodyContext):
         node = FunctionBody()
         _return = ReturnNode()
         ret = False
@@ -513,15 +583,16 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 _return.setChild(astchild)
                 dead = True
             elif astchild:
-                if isinstance( astchild, tuple ):
+                if isinstance(astchild, tuple):
                     for astc in astchild:
                         node.addBody(astc)
                 else:
                     node.addBody(astchild)
 
+        self.addMetaData(ctx, node)
         return node
 
-    def visitFunctioncall(self, ctx:CGrammarParser.FunctioncallContext):
+    def visitFunctioncall(self, ctx: CGrammarParser.FunctioncallContext):
         name = ctx.getChild(0).getText()
         node = FunctionCall(name)
         arguments = ctx.arguments()
@@ -531,19 +602,22 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if not self.symbol_table.getFunction(node.getName()):
             raise UninitializedException(name)
 
+        self.addMetaData(ctx, node)
         return node
 
-    def visitInclude(self, ctx:CGrammarParser.IncludeContext):
+    def visitInclude(self, ctx: CGrammarParser.IncludeContext):
         node = IncludeNode()
         node.setLibrary(self.visit(ctx.library()))
+        self.addMetaData(ctx, node)
         return node
 
-    def visitLibrary(self, ctx:CGrammarParser.LibraryContext):
+    def visitLibrary(self, ctx: CGrammarParser.LibraryContext):
         name = ctx.getText()
         node = LibraryNode(name)
+        self.addMetaData(ctx, node)
         return node
 
-    def visitFunctiondeclaration(self, ctx:CGrammarParser.FunctiondeclarationContext):
+    def visitFunctiondeclaration(self, ctx: CGrammarParser.FunctiondeclarationContext):
         _type = ctx.getChild(0).getText()
         _name = ctx.getChild(1).getText()
         _arguments = ctx.arguments()
@@ -561,6 +635,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.symbol_table.appendFunction(node)
         if _name == "main":
             self.setVisitedMain()
+        self.addMetaData(ctx, node)
         return node
 
     # def findNode(self, name: str):
@@ -581,5 +656,6 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     def getVisitedMain(self):
         return self.visitedmain
+
 
 del CGrammarParser
