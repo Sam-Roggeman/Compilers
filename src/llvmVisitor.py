@@ -97,10 +97,13 @@ class llvmVisitor(AbsASTVisitor):
         while_block = self.block.function.append_basic_block(name='while')
         elihw_block = self.block.function.append_basic_block(name='elihw')
 
+        self.continueBlock = cond_block
+        self.breakBlock = elihw_block
+
         self.breakBlock = elihw_block
         self.continueBlock = cond_block
-
-        self.block.branch(cond_block)
+        if not self.block.block.is_terminated:
+            self.block.branch(cond_block)
         self.block = ir.IRBuilder(cond_block)
         condition = self.visit(ctx.condition)
         if condition.type == i32:
@@ -109,15 +112,15 @@ class llvmVisitor(AbsASTVisitor):
 
         self.block = ir.IRBuilder(while_block)
         self.visitCodeBlockNode(ctx.block)
-        self.block.branch(cond_block)
+        if not self.block.block.is_terminated:
+            self.block.branch(cond_block)
 
         self.block = ir.IRBuilder(elihw_block)
         self.popSymbolTable()
 
-        return
+        self.continueBlock = None
+        self.breakBlock = None
 
-        a = self.visit(ctx.condition)
-        print("a")
         return
 
     def visitFunctionBody(self, ctx: FunctionBody):
@@ -211,11 +214,13 @@ class llvmVisitor(AbsASTVisitor):
 
         self.block = ir.IRBuilder(if_block)
         self.visitCodeBlockNode(ctx.block)
-        self.block.branch(endif_block)
+        if not self.block.block.is_terminated:
+            self.block.branch(endif_block)
 
         self.block = ir.IRBuilder(elseif_block)
         self.visitCodeBlockNode(ctx.else_statement.block)
-        self.block.branch(endif_block)
+        if not self.block.block.is_terminated:
+            self.block.branch(endif_block)
 
         self.block = ir.IRBuilder(endif_block)
 

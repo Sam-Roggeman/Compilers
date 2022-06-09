@@ -12,6 +12,10 @@ class AbsASTVisitor:
         if isinstance(ctx, CodeblockNode):
             return self.visitCodeBlockNode(ctx)
         elif isinstance(ctx, TermNode):
+            if isinstance(ctx, BreakNode):
+                return self.visitBreakNode(ctx)
+            elif isinstance(ctx, ContinueNode):
+                return self.visitContinueNode(ctx)
             return self.visitTermNode(ctx)
         elif isinstance(ctx, UnOpNode):
             return self.visitUnOpNode(ctx)
@@ -21,10 +25,7 @@ class AbsASTVisitor:
             return self.visitConditionNode(ctx)
         elif isinstance(ctx, ArgumentsNode):
             return self.visitArgumentNode(ctx)
-        elif isinstance(ctx, BreakNode):
-            return self.visitBreakNode(ctx)
-        elif isinstance(ctx, ContinueNode):
-            return self.visitContinueNode(ctx)
+
 
         elif isinstance(ctx, BinOpNode):
             if isinstance(ctx, BinPlusNode):
