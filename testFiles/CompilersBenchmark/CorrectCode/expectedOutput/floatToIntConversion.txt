@@ -1,1 +1,1 @@
-Implicit conversion from float to int
+Line: 6 Col: 4 Implicit conversion from float (0.5) to int (0)

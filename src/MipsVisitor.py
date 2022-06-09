@@ -111,6 +111,10 @@ class TwoRegInstruction(MipsInstruction):
         return f'{self.operation}\t{self.lhs}, {self.rhs} {MipsInstruction.__str__(self)}'
 
 
+class cvt_s_w(TwoRegInstruction):
+    def __init__(self, r1, r2):
+        super().__init__(r1, r2, 'cvt.s.w')
+
 class TwoRegMemoryInstruction(TwoRegInstruction):
     offset: int  # bytes
 
@@ -157,14 +161,21 @@ class LI(ImmediateInstruction):
         super().__init__(reg, 'li', value)
 
 
-class LCW1(ImmediateInstruction):
+class LWC1(ImmediateInstruction):
     def __init__(self, reg, label):
         super().__init__(reg, 'lwc1', label)
+class LWC1Mem(TwoRegMemoryInstruction):
+    def __init__(self, reg, reg2, offset):
+        super().__init__(r1=reg,r2=reg2, operation='lwc1', offset=offset)
 
 
 class SW(TwoRegMemoryInstruction):
     def __init__(self, r1, r2, offset):
         super(SW, self).__init__(r1, r2, 'sw', offset)
+
+class SWC1(TwoRegMemoryInstruction):
+    def __init__(self, r1, r2, offset):
+        super(SWC1, self).__init__(r1, r2, 'swc1', offset)
 
 
 class StoreReturnAddress(SW):
@@ -545,6 +556,7 @@ class BNE(ThreeRegInstruction):
         super().__init__(r1=r1, r2=r2, r3=truebr, op='bne')
 
 
+
 class MipsVisitor(AbsASTVisitor):
     module: MipsModule
     builder: MipsBuilder
@@ -701,9 +713,9 @@ class MipsVisitor(AbsASTVisitor):
                 self.callprintf(temp[0])
                 if isinstance(fmt_args[arg_ind], float):
                     label = self.module.addGlobal(FLOAT(name=f'float', val=fmt_args[arg_ind]))
-                    self.block.addInstruction(LCW1('$f12', label))
+                    self.block.addInstruction(LWC1('$f12', label))
                 else:
-                    self.block.addInstruction(LW('$f12', fmt_args[arg_ind].base, fmt_args[arg_ind].offset))
+                    self.block.addInstruction(LWC1Mem('$f12', fmt_args[arg_ind].base, fmt_args[arg_ind].offset))
                 self.block.addInstruction(LI('$v0', 2))
             else:
                 continue
@@ -776,7 +788,7 @@ class MipsVisitor(AbsASTVisitor):
 
     def visitAssNode(self, ctx: AssNode):
         node: VariableEntry = self._symbol_table.getTableEntry(ctx.lhs.getName())
-        value: ir.Instruction
+        value: MemoryLocation
         # todo
         if not self.current_function:
             gv = ir.GlobalVariable(module=self.module, name=ctx.lhs.getName(), typ=ctx.rhs.getLLVMType())
@@ -784,19 +796,44 @@ class MipsVisitor(AbsASTVisitor):
             self._symbol_table.getTableEntry(ctx.lhs.getName()).register = gv
             self.globals.append(gv)
             return
-
+        returnReg:str
         if isinstance(ctx.rhs, TermNode):
             node.stored_value = ctx.rhs.value
-            self.block.addInstruction(LI(value=node.stored_value, reg='$t0'))
-            self.block.addInstruction(SW(r1='$t0', r2='$sp', offset=node.register))
-            return
-        value = self.visit(ctx.rhs)
-        if value.type.is_pointer and not isinstance(ctx.rhs, RefNode):
-            value = self.block.load(value, value.name)
+            if isinstance(ctx.rhs,TermFloatNode):
+                returnReg = '$f0'
+                label = self.module.addGlobal(FLOAT(name=f'float', val=node.stored_value))
+                self.block.addInstruction(LWC1(returnReg, label))
+                self.block.addInstruction(SWC1(r1=returnReg, r2='$sp', offset=node.register))
 
-        value = self.convertTo(value, ctx)
+            else:
+                returnReg = '$t0'
+                self.block.addInstruction(LI(value=node.stored_value, reg=returnReg))
+                self.block.addInstruction(SW(r1=returnReg, r2='$sp', offset=node.register))
+            return returnReg
+        value = self.visit(ctx.rhs)
+        lhs = self.visit(ctx.lhs)
+
+
+        # value = self.convertTo(value, ctx)
         node.stored_value = value
-        return self.block.store(value, node.register)
+
+        if ctx.lhs.getType() == 'float':
+            if isinstance(value, MemoryLocation) and not isinstance(ctx.rhs, RefNode):
+                self.block.addInstruction(LWC1Mem('$f0', value.base, value.offset))
+            if ctx.rhs.getType() == 'i32':
+                self.block.addInstruction(cvt_s_w(r1='$f0',r2='$f0'))
+
+            returnReg = '$f0'
+            # self.block.addInstruction(LWC1Mem(returnReg, lhs.base,lhs.offset ))
+            self.block.addInstruction(SWC1(r1=returnReg, r2='$sp', offset=node.register))
+            return returnReg
+        else:
+            if isinstance(value, MemoryLocation) and not isinstance(ctx.rhs, RefNode):
+                self.block.addInstruction(LW('$t0', value.base, value.offset))
+            self.block.addInstruction(SW('$t0',lhs.base,lhs.offset))
+            return '$t0'
+
+        return '$t0'
 
     def visitPointerNode(self, ctx: PointerNode):
         if ctx.getChildren()[0] and isinstance(ctx._child, StringNode):

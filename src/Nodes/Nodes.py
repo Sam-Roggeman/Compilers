@@ -2,6 +2,7 @@ from Nodes.FunctionNodes import *
 from Nodes.VariableNodes import *
 from SymbolTable import *
 
+
 def richest(node1: type, node2: type):
     types = [
         TermFloatNode,
@@ -592,8 +593,14 @@ class AssNode(BinOpNode):
         AbsNode.solveTypes(self)
         self.type = self.lhs.getSolvedType()
         if isinstance(self.rhs, TermNode) and self.type != self.rhs.getSolvedType():
-            sys.stderr.write(f"Implicit conversion from {self.rhs.getSolvedType().getType()} to {self.type.getType()}")
+            oldval = self.rhs.value
+            oldType = self.rhs.getSolvedType().getType()
             self.rhs = self.type(self.rhs.value)
+            sys.stderr.write(
+                f"Line: {self.getMetaData().getLine()} " +
+                f"Col: {self.getMetaData().getColumn()} " +
+                f"Implicit conversion from {oldType} ({oldval}) " +
+                f"to {self.type.getType()} ({self.rhs.value})\n")
         return
 
     def __init__(self):
