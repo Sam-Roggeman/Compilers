@@ -1,46 +1,56 @@
+import copy
+
 from Nodes.AbsNode import AbsNode
+from Nodes.TermNodes import TermCharNode
+from Nodes.VariableNodes import PointerNode, ir
+
+class ArrayRefNode(PointerNode):
+    index: AbsNode
+    def getSolvedType(self) -> type:
+        return self.point_to_type().getSolvedType()
+
+    def __init__(self,arr_name,index, pointee):
+        super().__init__(pointee)
+        self._name = arr_name
+        self.index = index
+
+    def getChildren(self):
+        return super(ArrayRefNode, self).getChildren() + [self.index]
 
 
-class ArrayNode(AbsNode):
-    def __init__(self):
-        super().__init__()
-        self.next = None
-        self.value = None
-        self.type = None
+    def __str__(self):
+        return f'{self._name}[{self.index}]'
 
-    def setNext(self, next):
-        self.next = next
+class ArrayNode(PointerNode):
+    arr: list
+    def __init__(self, node, ln):
+        super().__init__(node)
+        self.arr = [copy.deepcopy(node) for i in range(ln)]
+    def getLLVMType(self):
+        return ir.ArrayType(self.point_to_type().getLLVMType(),len(self.arr))
 
-    def setValue(self, value):
-        self.value = value
+    def __getitem__(self, key):
+        return self.arr[key]
 
-    def setType(self, type):
-        self.type = type
+    def __setitem__(self, key, value):
+        self.arr[key] = value
 
     def setParent(self, parent):
         self.parent = parent
 
-    def getNext(self):
-        return self.next
-
     def getChildren(self):
-        if self.next:
-            return [self.next]
-        else:
-            return []
+        return self.arr
 
 
 class StringNode(ArrayNode):
 
-    def __init__(self):
-        super().__init__()
-        self.type = 'char'
-
-    def toString(self):
-        return self.value
+    def __init__(self, string):
+        super().__init__(TermCharNode(),len(string))
+        for index in range(len(string)):
+            self[index] = TermCharNode(string[index])
 
     def getFullString(self):
-        returnval = self.value
-        if self.next:
-            returnval += self.next.getFullString()
+        returnval = ''
+        for el in self.arr:
+            returnval += el.value
         return returnval

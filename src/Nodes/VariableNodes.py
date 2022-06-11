@@ -1,7 +1,5 @@
-import copy
-
+from Nodes.AbsNode import *
 from Nodes.TermNodes import *
-from Nodes.ArrayNodes import *
 from llvmTypes import *
 
 
@@ -31,6 +29,7 @@ class VariableNameNode(AbsNode):
 
     def toString(self):
         return self.getName()
+
 
 class VariableNode(VariableNameNode):
     def __str__(self):
@@ -80,6 +79,7 @@ class VariableNode(VariableNameNode):
     @staticmethod
     def getLLVMType():
         pass
+
 
 class VariableIntNode(VariableNode):
     def __init__(self):
@@ -134,13 +134,17 @@ class VariableCharNode(VariableNode):
     def getType(self):
         return "char"
 
+
 class PointerNode(VariableNode):
     point_to_type: type
     _name = None
+
     def getSolvedType(self) -> type:
-        return self
+        return type(self)
+
     def getLLVMType(self):
         return self._child.getLLVMType().as_pointer()
+
     def checkParent(self, parent):
         self.setParent(parent)
         for c in self.getChildren():
@@ -165,7 +169,7 @@ class PointerNode(VariableNode):
         self.pointTo(child)
         self._child.setParent(self)
 
-    def pointTo(self, child: TermNode or VariableNode or StringNode):
+    def pointTo(self, child: TermNode or VariableNode):
         if type(child) == self.point_to_type:
             self._child = child
 

@@ -1,4 +1,5 @@
 from ASTVisitor import AbsASTVisitor
+from Nodes.ArrayNodes import StringNode
 from Nodes.Nodes import *
 
 

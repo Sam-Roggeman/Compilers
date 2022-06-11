@@ -1,8 +1,8 @@
 from MetaData import *
 
 class AbsNode:
-    def setRvalue(self):
-        self.rvalue = True
+    def setRvalue(self, rval):
+        self.rvalue = rval
 
     def isRvalue(self):
         return self.rvalue
@@ -53,8 +53,7 @@ class AbsNode:
     def __init__(self, parent=None):
         self.parent = parent
         self._metadata: MetaData
-        self._lvalue = True
-        self.rvalue = False
+        self.rvalue = True
         self.symbol_table = None
         self.dead = False
 
@@ -97,7 +96,7 @@ class AbsNode:
         return string
 
     def isLvalue(self):
-        return self._lvalue
+        return not self.rvalue
 
     def solveTypes(self):
         children = self.getChildren()

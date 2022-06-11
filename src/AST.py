@@ -16,9 +16,10 @@ class AST:
         self._root = root
         self._toDot = toDot
         self._symbol_table = self._root.getSymbolTable()
-        self._root.solveTypes()
         if toDot:
             self.toDot(name="AST")
+        self._root.solveTypes()
+
         self.optimize()
 
 

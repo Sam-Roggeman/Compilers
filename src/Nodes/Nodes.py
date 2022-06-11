@@ -287,8 +287,10 @@ class BinOpNode(AbsNode):
 
     def solveTypes(self):
         AbsNode.solveTypes(self)
-
-        self.type = richest(self.lhs.getSolvedType(), self.rhs.getSolvedType())
+        lhs_ty = self.lhs.getSolvedType()
+        rhs_ty = self.rhs.getSolvedType()
+        self.type = richest(lhs_ty, rhs_ty)
+        assert (self.type is not None)
 
     def checkParent(self, parent):
         self.setParent(parent)
@@ -326,6 +328,25 @@ class BinOpNode(AbsNode):
     def getLLVMType(self):
         a = self.type.getLLVMType()
         return a
+
+class VoidNode(AbsNode):
+    @staticmethod
+    def getLLVMType():
+        return cvoid
+
+    def getSolvedType(self) -> type:
+        return VoidNode
+
+    def getType(self):
+        return "void"
+    def __bool__(self):
+        return False
+    def __str__(self):
+        return "void"
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
 
 
 class TermBoolNode(TermNode):
@@ -586,6 +607,65 @@ class RefNode(AbsNode):
         super().__init__()
 
 
+class DeRefNode(AbsNode):
+    child: PointerNode
+
+    def getSolvedType(self) -> type:
+        return self.type
+
+    def solveTypes(self):
+        AbsNode.solveTypes(self)
+        self.type = self.child.deRef().getSolvedType()
+
+    def deRef(self):
+        return self.child
+
+    def getLLVMType(self):
+        a = self.type.getLLVMType()
+        return a
+
+    def getChildren(self):
+        return [self.child]
+
+    def checkParent(self, parent):
+        self.setParent(parent)
+        self.child.setParent(self)
+
+    def toString(self):
+        return "*"
+
+    def toDot(self, dot):
+        dot.node(str(id(self)), str(self))
+        self.child.toDot(dot)
+        dot.edge(str(id(self)), str(id(self.child)))
+        return dot
+
+    def setRvalue(self, rval):
+        self.rvalue = rval
+        self.child.setRvalue(rval)
+
+    def preOrderTraversal(self, string: str, oneline=True, indent=0):
+        if oneline:
+            string += self.toString() + ","
+            c = self.getChildren()
+            string += self.child.getName() + ","
+        else:
+            for i in range(0, indent):
+                string += '\t'
+            string += self.toString()
+            string += '\n'
+            for child in self.getChildren():
+                string = child.preOrderTraversal(string, oneline, indent + 1)
+        return string
+
+    def setChild(self, child, index: int = 0):
+        self.child = child
+        self.child.setParent(self)
+
+    def __init__(self):
+        super().__init__()
+
+
 class AssNode(BinOpNode):
     lhs: VariableNode
 
@@ -621,6 +701,10 @@ class AssNode(BinOpNode):
 
     def __str__(self):
         return "="
+
+    def getLLVMType(self):
+        a = self.lhs.getLLVMType()
+        return a
 
 
 class StatementNode(AbsNode):

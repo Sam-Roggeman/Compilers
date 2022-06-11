@@ -1,4 +1,7 @@
 # Generated from ./src/g4_files/CGrammar.g4 by ANTLR 4.9.3
+import copy
+
+from Nodes.ArrayNodes import ArrayNode, StringNode, ArrayRefNode
 from Nodes.Nodes import *
 from SymbolTable import *
 from g4_files.CGrammarParser import CGrammarParser
@@ -7,8 +10,12 @@ from g4_files.CGrammarVisitor import CGrammarVisitor
 
 # This class defines a complete generic visitor for a parse tree produced by CGrammarParser.
 
+
+
+
 class CGrammarVisitorImplementation(CGrammarVisitor):
     def __init__(self):
+        self.incrDecrQueue = {'bef': [], 'aft': []}
         self.symbol_table = None
         self.visitedmain = False
         self.counter = 0
@@ -54,6 +61,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 expr = self.visit(ctx.mathExpr()[0])
                 op.setChild(expr)
                 return op
+            elif ctx.array():
+                name = ctx.variable().getText()
+                index = self.visit(ctx.array().mathExpr()[0])
+                node = self.symbol_table.getTableEntry(name)
+                t = node.node.point_to_type
+                return ArrayRefNode(name, index, t())
             elif ctx.incr_decr():
                 child1 = self.visit(ctx.mathExpr()[0])
                 child2 = TermIntNode(1)
@@ -61,9 +74,16 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 operator_node.setChildren(child1, child2)
                 ass = AssNode()
                 ass.rhs = operator_node
-                ass.lhs = child1
-
-                return ass
+                ass.lhs = copy.deepcopy(child1)
+                ass.lhs.setRvalue(False)
+                ass.rhs.setRvalue(True)
+                if ctx.getChild(0) == ctx.incr_decr():
+                    self.incrDecrQueue['bef'].append(ass)
+                else:
+                    self.incrDecrQueue['aft'].append(ass)
+                self.addMetaData(ctx, ass)
+                c = self.visit(ctx.mathExpr()[0])
+                return c
 
 
         elif count == 3:
@@ -115,18 +135,25 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     # Visit a parse tree produced by CGrammarParser#declaration.
     def visitDeclaration(self, ctx: CGrammarParser.DeclarationContext):
-        node = self.visit(ctx.types_specifier())
+        node: VariableNode = self.visit(ctx.types_specifier())
         name = ctx.variable().getText()
+        if ctx.array():
+            sz: CGrammarParser.INTLit = int(ctx.array().mathExpr()[0].getText())
+            node: ArrayNode = ArrayNode(node, sz)
         node.setName(name)
+
         self.symbol_table.append(node)
         if ctx.CONST():
             node.makeConst()
-        return self.visitChildren(ctx)
+        node.setRvalue(False)
+        self.addMetaData(ctx,node)
+        return node
 
     # Visit a parse tree produced by CGrammarParser#declaration_assignment.
     def visitDeclaration_assignment(self, ctx: CGrammarParser.Declaration_assignmentContext):
-        node1 = None
-        node2 = None
+        node1:AbsNode = None
+        node2:AbsNode = None
+
 
         # Node1
         if ctx.types_specifier():
@@ -138,23 +165,22 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.symbol_table.append(node1)
         if ctx.CONST():
             node1.makeConst()
-
+        node1.setRvalue(False)
         # Node2
         if ctx.rvalue():
             node2 = self.visit(ctx.rvalue())
             for c in node2.getChildren():
-                c.setRvalue()
-            node2.setRvalue()
+                c.setRvalue(True)
+            node2.setRvalue(True)
         elif ctx.REF():
             node2 = RefNode()
             child = self.visit(ctx.variable(1))
             child.setReferenced()
-            child.setRvalue()
+            child.setRvalue(True)
             node2.setChild(child)
-            node2.setRvalue()
+            node2.setRvalue(True)
         elif ctx.functioncall():
             node2 = self.visit(ctx.functioncall())
-
         self.symbol_table.setValue(name, node2)
         if not node2:
             self.addMetaData(ctx, node1)
@@ -180,8 +206,12 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             ref = self.symbol_table.getTableEntry(name).value
             # the variable under the adress
             name = ref.child.getName()
-
-        node1 = copy.deepcopy(self.symbol_table.getVar(varname=name))
+        if ctx.array():
+            arr: ArrayNode = self.symbol_table.getVar(varname=name)
+            index = int(ctx.array().getChild(1).getText())
+            node1 = ArrayRefNode(name, TermIntNode(index), arr.point_to_type())
+        else:
+            node1 = copy.deepcopy(self.symbol_table.getVar(varname=name))
         if self.symbol_table.getConst(name):
             raise ConstException(varname=name)
         # Node2
@@ -190,12 +220,15 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         assinmentNode = AssNode()
         assinmentNode.setChild(node1, 0)
         assinmentNode.setChild(node2, 1)
+        node1.setRvalue(False)
         self.addMetaData(ctx, assinmentNode)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#reference.
     def visitReference(self, ctx: CGrammarParser.ReferenceContext):
-        return self.visitChildren(ctx)
+        node:AbsNode = self.visitChildren(ctx)
+        node.rvalue = False
+        return node
 
     # Visit a parse tree produced by CGrammarParser#poinervariable.
     def visitPointertype(self, ctx: CGrammarParser.PointertypeContext):
@@ -213,7 +246,13 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     # Visit a parse tree produced by CGrammarParser#dereffedvariable.
     def visitDereffedvariable(self, ctx: CGrammarParser.DereffedvariableContext):
         # print("visitDereffedvariable")
-        return self.visitChildren(ctx)
+        node = self.visit(ctx.variable())
+        for i in range (ctx.deref().getChildCount()):
+            new = DeRefNode()
+            new.setChild(node)
+            node = new
+        self.addMetaData(ctx,node)
+        return node
 
     # Visit a parse tree produced by CGrammarParser#binOpPrio1.
     def visitBinOpPrio1(self, ctx: CGrammarParser.BinOpPrio1Context):
@@ -324,23 +363,23 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         # print("visitVariable")
         node = copy.deepcopy(self.symbol_table.getVar(varname=ctx.getText()))
         self.addMetaData(ctx, node)
+        node.setRvalue(True)
         return node
 
     # Visit a parse tree produced by CGrammarParser#types_specifier.
     def visitTypes_specifier(self, ctx: CGrammarParser.Types_specifierContext):
         # print("visitTypes_specifier")
+        node:AbsNode
         if ctx.CHARTYPE():
             node = VariableCharNode()
-            self.addMetaData(ctx, node)
-            return node
         elif ctx.FLOATTYPE():
             node = VariableFloatNode()
-            self.addMetaData(ctx, node)
-            return node
+        elif ctx.VOID():
+            node = VoidNode()
         elif ctx.INTTYPE():
             node = VariableIntNode()
-            self.addMetaData(ctx, node)
-            return node
+        self.addMetaData(ctx, node)
+        return node
 
     # Visit a parse tree produced by CGrammarParser#literal.
     def visitLiteral(self, ctx: CGrammarParser.LiteralContext):
@@ -359,6 +398,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             node = TermFloatNode(float(value))
             self.addMetaData(ctx, node)
             return node
+
         elif ctx.CHARLit():
             node = TermCharNode(ctx.CHARLit().getText()[1:-1])
             self.addMetaData(ctx, node)
@@ -390,39 +430,19 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.addMetaData(ctx, node)
         return node
 
+    def visitArray(self, ctx: CGrammarParser.ArrayContext):
+        print("hi")
+        return
+
     def visitArg(self, ctx: CGrammarParser.ArgContext):
         return self.visitChildren(ctx)
 
     def visitString(self, ctx: CGrammarParser.StringContext):
-        node = StringNode()
-        pointernode = PointerNode(node)
-        self.counter = 0
-        firstnode = node
-        node.setParent(pointernode)
-        string = ctx.getText()
-        escaped = False
-        for char in string:
-            if char == "%":
-                self.counter += 1
-            if char != '"':
-                if char == '\\' and not escaped:
-                    escaped = True
-                    temp = char
-                    continue
-                if escaped:
-                    char = bytes("\\" + char, "utf-8").decode("unicode_escape")
-
-                node.setNext(StringNode())
-                node.setValue(char)
-                node.getNext().setParent(node)
-                node = node.getNext()
-                escaped = False
-        node = node.parent
-        node.setNext(None)
-        a = firstnode.getFullString()
-
-        self.addMetaData(ctx, pointernode)
-        return pointernode
+        s = ctx.getText()[1:-1]
+        s = bytes(s, "utf-8").decode("unicode_escape")
+        node = StringNode(s)
+        self.addMetaData(ctx, node)
+        return node
 
     def visitFile(self, ctx: CGrammarParser.FileContext):
         node1 = CodeblockNode()
@@ -490,13 +510,19 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         return self.visit(ctx.expr())
 
     def visitIncrementer(self, ctx: CGrammarParser.IncrementerContext):
-        return self.visit(ctx.expr())
+        return self.visitExpr(ctx.expr())
 
     def visitForstatement(self, ctx: CGrammarParser.ForstatementContext):
         node = WhilestatementNode()
         initializer = self.visit(ctx.initializer())
         condition = self.visit(ctx.condition())
-        incrementer = self.visit(ctx.incrementer())
+        incrementer = self.visitIncrementer(ctx.incrementer())
+        if self.incrDecrQueue['bef']:
+            incrementer = self.incrDecrQueue['bef'][0]
+            self.incrDecrQueue['bef'] = []
+        elif self.incrDecrQueue['aft']:
+            incrementer = self.incrDecrQueue['aft'][0]
+            self.incrDecrQueue['aft'] = []
 
         codeblock: CodeblockNode = self.visit(ctx.body())
         codeblock.addchild(incrementer)
@@ -513,7 +539,13 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             self.symbol_table.addChild(node1.getSymbolTable())
         self.symbol_table = node1.getSymbolTable()
         for c in ctx.getChildren():
+            for indec in self.incrDecrQueue['aft']:
+                node1.addchild(indec)
+            self.incrDecrQueue['aft'] = []
             astchild = self.visit(c)
+            for indec in self.incrDecrQueue['bef']:
+                node1.addchild(indec)
+            self.incrDecrQueue['bef'] = []
             if _break or _continue:
                 continue
             elif c.getText() == "break":
@@ -528,6 +560,9 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 _continue = True
             elif astchild:
                 node1.addchild(astchild)
+        for indec in self.incrDecrQueue['aft']:
+            node1.addchild(indec)
+        self.incrDecrQueue['aft'] = []
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
         self.addMetaData(ctx, node1)
@@ -542,59 +577,46 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
 
-    def visitFunctiondefinition(self, ctx: CGrammarParser.FunctiondefinitionContext):
-        _type = ctx.getChild(0).getText()
-        _name = ctx.getChild(1).getText()
-        _arguments = ctx.arguments()
 
-        node = FunctionDefinition(_name, _type)
-
-        if _arguments:
-            if self.symbol_table:
-                self.symbol_table.addChild(node.getSymbolTable())
-                self.symbol_table = node.getSymbolTable()
-            _arguments = self.visit(_arguments)
-            node.addArgument(_arguments)
-        self.pushSymbolTable(SymbolTable())
-        body = self.visitFunctionbody(ctx.functionbody())
-        node.setFunctionbody(body)
-        node.checkReturn()
-        node.setSymbolTabel(self.symbol_table)
-        self.popSymbolTable()
-        self.symbol_table.appendFunction(node)
-        if _name == "main":
-            self.setVisitedMain()
-        self.addMetaData(ctx, node)
-        return node
+    def visitReturnStatement(self, ctx:CGrammarParser.ReturnStatementContext):
+        _return = ReturnNode()
+        if ctx.expr():
+            val = self.visit(ctx.expr())
+            _return.setChild(val)
+        return _return
 
     def visitFunctionbody(self, ctx: CGrammarParser.FunctionbodyContext):
         node = FunctionBody()
-        _return = ReturnNode()
         ret = False
         dead = False
         for c in ctx.getChildren():
+            for indec in self.incrDecrQueue['aft']:
+                node.addBody(indec)
+            self.incrDecrQueue['aft'] = []
             astchild = self.visit(c)
-            if c.getText() == "return":
-                node.addBody(_return)
-                ret = True
-            elif dead:
+            for indec in self.incrDecrQueue['bef']:
+                node.addBody(indec)
+            self.incrDecrQueue['bef'] = []
+            if dead:
                 continue
-            elif ret and astchild and not dead:
-                _return.setChild(astchild)
-                dead = True
+            # elif ret and astchild and not dead:
+            #     _return.setChild(astchild)
+            #     dead = True
             elif astchild:
                 if isinstance(astchild, tuple):
                     for astc in astchild:
                         node.addBody(astc)
                 else:
                     node.addBody(astchild)
-
-        self.addMetaData(ctx, node)
+        for indec in self.incrDecrQueue['aft']:
+            node.addBody(indec)
+        self.incrDecrQueue['aft'] = []
         return node
 
     def visitFunctioncall(self, ctx: CGrammarParser.FunctioncallContext):
         name = ctx.getChild(0).getText()
-        node = FunctionCall(name)
+        returntype = self.symbol_table.getFunction(name).node.returntype
+        node = FunctionCall(name, returntype)
         arguments = ctx.arguments()
         if arguments:
             node.addArgument(self.visit(arguments))
@@ -611,45 +633,70 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         self.addMetaData(ctx, node)
         return node
 
+    def visitScanf(self, ctx: CGrammarParser.ScanfContext):
+        node = ScanfNode()
+        c = ctx.arguments()
+        astchild = self.visit(c)
+        node.addArgument(astchild)
+        if self.counter > 0 and self.counter != len(node.getArguments().getChildren()) - 1:
+            raise functionCallargumentMismatch
+        self.addMetaData(ctx, node)
+        return node
+
     def visitLibrary(self, ctx: CGrammarParser.LibraryContext):
         name = ctx.getText()
         node = LibraryNode(name)
         self.addMetaData(ctx, node)
         return node
 
+
+    def visitFunctiondefinition(self, ctx: CGrammarParser.FunctiondefinitionContext):
+        _type = self.visit(ctx.getChild(0))
+
+        _name = ctx.getChild(1).getText()
+        _arguments:ArgumentsNode = ctx.arguments()
+
+        node = FunctionDefinition(_name, _type)
+        self.symbol_table.appendFunction(node)
+        self.pushSymbolTable(node.symbol_table)
+
+        if _arguments:
+            _arguments = self.visit(_arguments)
+            node.addArgument(_arguments)
+            for a in _arguments.getChildren():
+                a.setRvalue(False)
+        body = self.visitFunctionbody(ctx.functionbody())
+        node.setFunctionbody(body)
+        node.checkReturn()
+        node.setSymbolTabel(self.symbol_table)
+        self.popSymbolTable()
+        if _name == "main":
+            self.setVisitedMain()
+        self.addMetaData(ctx, node)
+        return node
+
     def visitFunctiondeclaration(self, ctx: CGrammarParser.FunctiondeclarationContext):
-        _type = ctx.getChild(0).getText()
+        _type = self.visit(ctx.getChild(0))
+
         _name = ctx.getChild(1).getText()
         _arguments = ctx.arguments()
 
         node = FunctionDefinition(_name, _type)
+        self.addMetaData(ctx, node)
+
         if _arguments:
-            if self.symbol_table:
-                self.symbol_table.addChild(node.getSymbolTable())
-                self.symbol_table = node.getSymbolTable()
             _arguments = self.visit(_arguments)
             node.addArgument(_arguments)
+            for a in _arguments.getChildren():
+                a.setRvalue(False)
         node.checkReturn()
         if self.symbol_table.parent:
             self.symbol_table = self.symbol_table.parent
         self.symbol_table.appendFunction(node)
         if _name == "main":
             self.setVisitedMain()
-        self.addMetaData(ctx, node)
+        node.setRvalue(False)
         return node
-
-    # def findNode(self, name: str):
-    #     deref_count = 0
-    #     for c in name:
-    #         if c == '*':
-    #             deref_count = + 1
-    #         else:
-    #             break
-    #     name = name[deref_count:]
-    #     s = self._symbol_table.getVar(varname=name)
-    #     for i in range(0, deref_count):
-    #         s = s.deRef()
-    #     return s
 
     def setVisitedMain(self):
         self.visitedmain = True

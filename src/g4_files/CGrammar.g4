@@ -11,9 +11,9 @@ file
 body
     : ((functioncall SEMICOL)
     |  (statement)  | (expr SEMICOL)
-    | (printf SEMICOL))*  (BREAK SEMICOL (expr)*
+    | (printf SEMICOL)|scanf SEMICOL)*  (BREAK SEMICOL (expr)*
     | CONTINUE SEMICOL (expr SEMICOL)*)?
-    | RETURN expr SEMICOL
+    | returnStatement
     ;
 
 expr
@@ -40,14 +40,15 @@ rvalue: mathExpr| variable (array)? ;
 include: INCLUDE library;
 library: '<' 'stdio' '.' 'h' '>';
 
-function: printf SEMICOL | functiondeclaration SEMICOL| functiondefinition | functioncall SEMICOL;
+function: printf SEMICOL | functiondeclaration SEMICOL| functiondefinition | functioncall SEMICOL | scanf SEMICOL;
 functiondeclaration: (types_specifier | VOID) VarName LBR (arguments?) RBR;
 functiondefinition: (types_specifier | VOID) VarName LBR (arguments?) RBR LCBR functionbody RCBR;
-functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL))* (RETURN (expr | literal)? SEMICOL (expr SEMICOL)*)?;
+functionbody: ((expr SEMICOL) | (statement) | (functioncall SEMICOL) | (printf SEMICOL) | (scanf SEMICOL))* (returnStatement (expr SEMICOL)*)?;
 functioncall: VarName LBR (arguments)? RBR;
+returnStatement: RETURN (expr | literal)? SEMICOL;
 
 
-array: (LSBR INTLit RSBR)+;
+array: (LSBR mathExpr RSBR)+;
 ifstatement: IF LBR expr  RBR LCBR (body) RCBR;
 elsestatement: ELSE LCBR (body) RCBR;
 whilestatement: WHILE LBR expr RBR LCBR (body) RCBR;
@@ -76,8 +77,10 @@ binOp: binOpPrio2
     | binOpPrio1
     ;
 
-mathExpr : unOp mathExpr
-    | mathExpr incr_decr
+mathExpr
+    : mathExpr incr_decr
+    | incr_decr mathExpr
+    | unOp mathExpr
     // (/,*,%)
     | mathExpr binOpPrio2 mathExpr
     // (+,-)
@@ -87,14 +90,10 @@ mathExpr : unOp mathExpr
         // (||,&&)
     | mathExpr logOp mathExpr
 
-    | incr_decr mathExpr
     // ((,))
     | LBR mathExpr RBR
 
-    | functioncall binOpPrio1 functioncall
-    | functioncall binOpPrio2 functioncall
-    | functioncall compOp functioncall
-    | functioncall logOp functioncall
+    | functioncall
     | literal
     | variable (array)?
     | dereffedvariable
@@ -115,11 +114,12 @@ deref: MUL (MUL)*;
 variable: VarName;
 
 
-types_specifier: CHARTYPE|FLOATTYPE|INTTYPE;
+types_specifier: CHARTYPE|FLOATTYPE|INTTYPE|VOID;
 literal: INTLit|FLOATLit|CHARLit;
 const_qualifier: CONST;
 
 printf: 'printf' LBR (arguments?) RBR;
+scanf: 'scanf' LBR (arguments?) RBR;
 arguments: arg (COMMA arg)*;
 arg: ( string | expr | (deref)* variable (array)? | literal | mathExpr | functioncall);
 string: STRING;

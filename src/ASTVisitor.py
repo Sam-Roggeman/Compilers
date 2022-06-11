@@ -1,3 +1,4 @@
+from Nodes.ArrayNodes import StringNode, ArrayNode, ArrayRefNode
 from Nodes.Nodes import *
 from SymbolTable import *
 
@@ -25,8 +26,6 @@ class AbsASTVisitor:
             return self.visitConditionNode(ctx)
         elif isinstance(ctx, ArgumentsNode):
             return self.visitArgumentNode(ctx)
-
-
         elif isinstance(ctx, BinOpNode):
             if isinstance(ctx, BinPlusNode):
                 return self.visitBinPlusNode(ctx)
@@ -62,12 +61,21 @@ class AbsASTVisitor:
             elif isinstance(ctx, VariableCharNode):
                 return self.visitVariableCharNode(ctx)
             elif isinstance(ctx, PointerNode):
+                # if isinstance(ctx, ArrayNode):
+                if isinstance(ctx, StringNode):
+                    return self.visitStringNode(ctx)
+                    # return self.visitArrayNode(ctx)
+                if isinstance(ctx, ArrayRefNode):
+                    return self.visitArrayRefNode(ctx)
+
                 return self.visitPointerNode(ctx)
         elif isinstance(ctx, VariableNameNode):
             return self.visitVariableNameNode(ctx)
         elif isinstance(ctx, FunctionNode):
             if isinstance(ctx, PrintfNode):
                 return self.visitPrintfNode(ctx)
+            elif isinstance(ctx, ScanfNode):
+                return self.visitScanfNode(ctx)
             elif isinstance(ctx, FunctionDefinition):
                 return self.visitFunctionDefinition(ctx)
             return self.visitFunctionNode(ctx)
@@ -91,10 +99,8 @@ class AbsASTVisitor:
                 return self.visitStatementNode(ctx)
         elif isinstance(ctx, FunctionBody):
             return self.visitFunctionBody(ctx)
-        elif isinstance(ctx, ArrayNode):
-            if isinstance(ctx, StringNode):
-                return self.visitStringNode(ctx)
-            return self.visitArrayNode(ctx)
+        elif isinstance(ctx, DeRefNode):
+            return self.visitDerefNode(ctx)
 
     def visitVariableFloatNode(self, ctx: VariableFloatNode):
         pass
@@ -127,6 +133,9 @@ class AbsASTVisitor:
     def visitVariableNode(self, ctx: VariableNode):
         pass
 
+    def visitScanfNode(self, ctx: ScanfNode):
+        pass
+
     def visitFunctionNode(self, ctx: FunctionNode):
         pass
 
@@ -140,6 +149,9 @@ class AbsASTVisitor:
         pass
 
     def visitPointerNode(self, ctx: PointerNode):
+        pass
+
+    def visitArrayRefNode(self, ctx: ArrayRefNode):
         pass
 
     def visitBinLTENode(self, ctx: BinLTENode):
@@ -223,10 +235,14 @@ class AbsASTVisitor:
 
     def visitConditionNode(self, ctx):
         pass
-    def visitBreakNode(self, ctx:BreakNode):
+
+    def visitBreakNode(self, ctx: BreakNode):
         pass
 
-    def visitContinueNode(self, ctx:ContinueNode):
+    def visitContinueNode(self, ctx: ContinueNode):
+        pass
+
+    def visitDerefNode(self, ctx: DeRefNode):
         pass
 
 
@@ -286,9 +302,8 @@ class ASTUsageVisitor(AbsASTVisitor):
 
     def visitAssNode(self, ctx):
         self.default(ctx)
-
     def visitPointerNode(self, ctx):
-        self.default(ctx)
+        self.visitVariableNode(ctx)
 
     def visitBinLTENode(self, ctx):
         self.default(ctx)

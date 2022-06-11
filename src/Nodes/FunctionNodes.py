@@ -1,13 +1,15 @@
 import SymbolTable
 from Errors import *
 from Nodes.AbsNode import AbsNode
+from Nodes.TermNodes import TermIntNode
+from Nodes.VariableNodes import VariableNode
 
 
 class FunctionNode(AbsNode):
     functionName: str
-
-    def __init__(self, name):
+    def __init__(self, name, type):
         super().__init__()
+        self.returntype = type
         self.functionName = name
         self.argumentNode: ArgumentsNode = ArgumentsNode()
 
@@ -26,11 +28,12 @@ class FunctionNode(AbsNode):
     def fold(self):
         self.argumentNode = self.argumentNode.fold()
         return self
-
+    def getSolvedType(self):
+        return self.returntype.getSolvedType()
 
 class FunctionCall(FunctionNode):
-    def __init__(self,name):
-        super().__init__(name)
+    def __init__(self,name,type):
+        super().__init__(name,type)
 
     def toString(self):
         return "Functioncall" + " " +  self.functionName
@@ -38,9 +41,8 @@ class FunctionCall(FunctionNode):
 class FunctionDefinition(FunctionNode):
 
     def __init__(self,name,type):
-        super().__init__(name)
+        super().__init__(name,type)
         self.functionbody: FunctionBody = None
-        self.returntype = type
         self.symbol_table = SymbolTable.SymbolTable()
 
     def getSymbolTable(self):
@@ -60,7 +62,7 @@ class FunctionDefinition(FunctionNode):
             self.functionbody.checkParent(self)
 
     def toString(self):
-        return self.returntype + " " + self.functionName
+        return str(self.returntype) + " " + self.functionName
 
     def fold(self):
         super().fold()
@@ -69,25 +71,28 @@ class FunctionDefinition(FunctionNode):
 
     def getChildren(self):
         children = []
-        if self.functionbody:
-            children.append(self.functionbody)
         if self.argumentNode:
             children.append(self.argumentNode)
+        if self.functionbody:
+            children.append(self.functionbody)
         return children
 
     def checkReturn(self):
-
         if self.returntype == "void" and self.functionbody != None \
                 and len(self.functionbody.body) > 0 and\
                 type(self.functionbody.body[-1]) == ReturnNode \
                 and self.functionbody.body[-1].getChildren()[0] != None:
             raise returnTypeMismatch("")
 
+
     def spaceToAllocate(self):
         space = 0
         for var in self.symbol_table.variables.values():
             space += var.node.getSize()
         return space
+
+    def getArgumentLLVMTypes(self):
+        return self.argumentNode.getArgumentLLVMTypes()
 
 
 class FunctionBody(AbsNode):
@@ -129,10 +134,23 @@ class ReturnNode(AbsNode):
     def setChild(self, child, index: int = 0):
         self.child = child
 
+class ScanfNode(FunctionNode):
+    def __init__(self):
+        super().__init__("scanf",TermIntNode)
+
+    def toString(self):
+        return "scanf"
+
+    def checkParent(self, parent=None):
+        if parent:
+            self.parent = parent
+            for c in self.getChildren():
+                c.checkParent(self)
+
 class PrintfNode(FunctionNode):
 
     def __init__(self):
-        super().__init__("printf")
+        super().__init__("printf", TermIntNode)
 
     def toString(self):
         return "printf"
@@ -148,10 +166,16 @@ class ArgumentsNode(AbsNode):
 
     def __init__(self):
         super().__init__("Arguments")
-        self.children = []
+        self.children:list = []
+
+    def getArgumentLLVMTypes(self):
+        ret = []
+        i:VariableNode
+        for i in self.children:
+            ret.append(i.getLLVMType())
+        return ret
 
     def addChild(self, child):
-        child.rvalue = True
         self.children.append(child)
 
     def checkParent(self, parent=None):

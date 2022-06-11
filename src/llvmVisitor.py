@@ -4,11 +4,11 @@ from ctypes import CFUNCTYPE
 
 import llvmlite.binding as llvm
 
-from ASTVisitor import AbsASTVisitor
-from Nodes.Nodes import *
-from llvmbuilder import LLVMBuilder
+from ASTVisitor import *
 from llvmTypes import *
+from llvmbuilder import LLVMBuilder
 
+import os, os.path
 
 class llvmVisitor(AbsASTVisitor):
     builder: LLVMBuilder
@@ -22,9 +22,11 @@ class llvmVisitor(AbsASTVisitor):
 
     def __init__(self, ctx: CodeblockNode, filepath: str, run=False):
         self.printf: ir.Function = None
+        self.scanf: ir.Function = None
         self.globals = []
         try:
-            self._output = open(file=filepath, mode='w')
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            self._output = open(file=filepath, mode='w+')
 
             # Create an empty module...
             self.module = ir.Module(name="Output.llvm")
@@ -35,14 +37,12 @@ class llvmVisitor(AbsASTVisitor):
 
             super().__init__(ctx)
 
-            self._output.write(str(self.module))
-            self._output.close()
-
         except Exception as e:
+            raise e
+        finally:
             self._output.write(str(self.module))
             self._output.close()
 
-            raise e
         if run:
             self.runLLVM()
 
@@ -59,13 +59,19 @@ class llvmVisitor(AbsASTVisitor):
             return cchar
 
     def visitFunctionDefinition(self, ctx: FunctionDefinition):
-        fnty = ir.FunctionType(self.llvmType(ctx.returntype), ())
+        param_ty = ctx.getArgumentLLVMTypes()
+        fnty = ir.FunctionType(ctx.returntype.getLLVMType(), param_ty )
         self.current_function = ir.Function(self.module, fnty, name=ctx.getName())
         self._symbol_table.getFunction(ctx.getName()).memorylocation = self.current_function
         block = self.current_function.append_basic_block(name=f"main-entry-{ctx.getName()}")
         self.block = ir.IRBuilder(block)
 
+        returnblock = ir.Block(parent=self.current_function, name=f"exit-{ctx.getName()}")
+        self.current_function.return_block = returnblock
+
         self.pushSymbolTable(ctx.symbol_table)
+        if ctx.returntype:
+            self.current_function.return_address = self.block.alloca(ctx.returntype.getLLVMType(), 1, 'return_add')
 
         for variable in self.globals:
             a: ir.AllocaInstr = self.block.alloca(variable.type, 1, variable.name)
@@ -74,12 +80,24 @@ class llvmVisitor(AbsASTVisitor):
             varnode: VariableNode = variable.node
             a: ir.AllocaInstr = self.block.alloca(varnode.getLLVMType(), 1, varnode.getName())
             variable.register = a
-
+        args = self.current_function.args
+        index= 0
+        for arg in ctx.getArguments().getChildren():
+            a = self.visit(arg)
+            self.block.store(value=args[index], ptr=a)
+            index += 1
         self.default(ctx)
+        self.current_function.blocks.append(returnblock)
+        if not self.block.block.is_terminated:
+            self.block.branch(returnblock)
+        self.block = ir.IRBuilder(returnblock)
         if ctx.getName() == 'main' and not self.block.block.is_terminated:
             self.block.ret(ir.Constant(i32, 1))
-        if ctx.returntype == 'void' and not self.block.block.is_terminated:
+        elif ctx.returntype == 'void' and not self.block.block.is_terminated:
             self.block.ret_void()
+        else:
+            result = self.load(self.current_function.return_address)
+            self.block.ret(result)
 
         self.popSymbolTable()
 
@@ -91,6 +109,7 @@ class llvmVisitor(AbsASTVisitor):
 
     def visitConditionNode(self, ctx):
         pass
+
     def visitWhilestatementNode(self, ctx: WhilestatementNode):
         self.pushSymbolTable(ctx.symbol_table)
         cond_block = self.block.function.append_basic_block(name='while_condition')
@@ -127,17 +146,22 @@ class llvmVisitor(AbsASTVisitor):
         return self.default(ctx)
 
     def visitCodeBlockNode(self, ctx: CodeblockNode):
-        ctx.symbol_table.parent = self._symbol_table
-        self._symbol_table = ctx.symbol_table
+        self.pushSymbolTable(ctx.symbol_table)
         if self.current_function:
             for variable in self._symbol_table.variables.values():
                 varnode: VariableNode = variable.node
                 a: ir.AllocaInstr = self.block.alloca(varnode.getLLVMType(), 1, varnode.getName())
                 variable.register = a
-
+        else:
+            for variable in self._symbol_table.variables.values():
+                varnode: VariableNode = variable.node
+                gv = ir.GlobalVariable(module=self.module, name=varnode.getName(), typ=varnode.getLLVMType())
+                gv.linkage = "internal"
+                variable.register = gv
+                self.globals.append(gv)
         self.default(ctx)
 
-        self._symbol_table = ctx.symbol_table.parent
+        self.popSymbolTable()
 
     def visitTermNode(self, ctx: TermNode):
         return ctx.llvmValue()
@@ -146,10 +170,11 @@ class llvmVisitor(AbsASTVisitor):
         pass
 
     def visitVariableNameNode(self, ctx: VariableNameNode):
-        lookasigned = ctx.rvalue
-        table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), lookasigned)
+        table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), not ctx.rvalue, True, metadata=ctx.getMetaData())
         ins: ir.Instruction = table_entry.register
-        return self.block.load(ins, ins.name)
+        if ctx.rvalue:
+            ins = self.block.load(ins, name=ctx.getName())
+        return ins
 
     def visitVariableIntNode(self, ctx: VariableIntNode):
         return self.visitVariableNode(ctx)
@@ -166,21 +191,37 @@ class llvmVisitor(AbsASTVisitor):
     def visitFunctionNode(self, ctx: FunctionNode):
         functionnode = self._symbol_table.getFunction(ctx.functionName)
         fmt_args = self.visit(ctx.argumentNode)
-        self.block.call(functionnode.memorylocation, fmt_args)
-        return 1
+        return self.block.call(functionnode.memorylocation, fmt_args)
+
+    def visitScanfNode(self, ctx: ScanfNode):
+        if not self.scanf:
+            voidptr_ty = cchar.as_pointer()
+            scanf_ty = ir.FunctionType(ir.IntType(32), [voidptr_ty], var_arg=True)
+            self.scanf = ir.Function(self.module, scanf_ty, name="scanf")
+        fmt_args = self.visitArgumentNode(ctx.argumentNode)
+        fmt_args = self.processStringArguments(fmt_args)
+        return self.block.call(self.scanf, fmt_args)
+
+    def gep(self, element):
+        return self.block.gep(element, indices=[i32(0), i32(0)], inbounds=True, name=element.name)
+
+    def processStringArguments(self,fmt_args):
+        fmt_args[0] = self.gep(fmt_args[0])
+        for index in range(1, len(fmt_args)):
+            if hasattr(fmt_args[index].type, "pointee"):
+                if isinstance(fmt_args[index].type.pointee, ir.ArrayType):
+                    fmt_args[index] = self.gep(fmt_args[index])
+                # else:
+                #     fmt_args[index] = self.load(fmt_args[index])
+        return fmt_args
 
     def visitPrintfNode(self, ctx: PrintfNode):
-        voidptr_ty = cchar.as_pointer()
         if not self.printf:
+            voidptr_ty = cchar.as_pointer()
             printf_ty = ir.FunctionType(ir.IntType(32), [voidptr_ty], var_arg=True)
             self.printf = ir.Function(self.module, printf_ty, name="printf")
-        fmt_args = self.visit(ctx.argumentNode)
-        for index in range(1, len(fmt_args)):
-            if hasattr(fmt_args[index].type, "pointee") and cchar == fmt_args[index].type.pointee:
-                loaded = self.block.load(fmt_args[index], fmt_args[index].name)
-
-                casted = self.block.sext(loaded, i32, name=loaded.name)
-                fmt_args[index] = casted
+        fmt_args = self.visitArgumentNode(ctx.argumentNode)
+        fmt_args = self.processStringArguments(fmt_args)
         return self.block.call(self.printf, fmt_args)
 
     def visitArgumentNode(self, ctx: ArgumentsNode):
@@ -189,6 +230,11 @@ class llvmVisitor(AbsASTVisitor):
             arguments.append(self.visit(arg))
         return arguments
 
+    def visitDerefNode(self, ctx: DeRefNode):
+        ins = self.visit(ctx.child)
+        ins = self.block.load(ins, name=ins.name)
+        return ins
+
     def visitRefNode(self, ctx: RefNode):
         a: ir.Instruction = self._symbol_table.getTableEntry(ctx.child.getName()).register
 
@@ -196,11 +242,16 @@ class llvmVisitor(AbsASTVisitor):
 
     def visitReturnNode(self, ctx: ReturnNode):
         value = self.visit(ctx.child)
-        if value is None:
-            self.block.ret_void()
-        else:
-            self.block.ret(value)
-        return
+        if value:
+            mem = self.current_function.return_address
+            self.block.store(value, mem)
+        ret_blo = self.current_function.return_block
+        self.block.branch(ret_blo)
+        # if value is None:
+        #     self.block.ret_void()
+        # else:
+        #     self.block.ret(value)
+        # return
 
     def visitIfElsestatementNode(self, ctx: IfElseStatementNode):
         self.pushSymbolTable(ctx.symbol_table)
@@ -223,7 +274,6 @@ class llvmVisitor(AbsASTVisitor):
             self.block.branch(endif_block)
 
         self.block = ir.IRBuilder(endif_block)
-
         self.popSymbolTable()
 
     def visitIfstatementNode(self, ctx: IfstatementNode):
@@ -247,34 +297,47 @@ class llvmVisitor(AbsASTVisitor):
         return
 
     def visitAssNode(self, ctx: AssNode):
-        node: VariableEntry = self._symbol_table.getTableEntry(ctx.lhs.getName())
+        a = ctx.getMetaData()
+
+        node: VariableEntry = self.visit(ctx.lhs)
+        ctx.lhs.setRvalue(False)
+        memoryloc = self.visit(ctx.lhs)
+        node.declared = True
         value: ir.Instruction
         if not self.current_function:
-            gv = ir.GlobalVariable(module=self.module, name=ctx.lhs.getName(), typ=ctx.rhs.getLLVMType())
+            gv = self.module.globals[ctx.lhs.getName()]
             gv.initializer = ctx.rhs.llvmValue()
             self._symbol_table.getTableEntry(ctx.lhs.getName()).register = gv
-            self.globals.append(gv)
             return
-
         if isinstance(ctx.rhs, TermNode):
-            node.stored_value = ctx.rhs.llvmValue()
-
-            return self.block.store(value=node.stored_value, ptr=node.register)
+            a = ctx.rhs.llvmValue()
+            # a = self.load(a)
+            return self.block.store(value=ctx.rhs.llvmValue(), ptr=memoryloc)
         value = self.visit(ctx.rhs)
         if value.type.is_pointer and not isinstance(ctx.rhs, RefNode):
             value = self.block.load(value, value.name)
 
         value = self.convertTo(value, ctx)
-        node.stored_value = value
-        return self.block.store(value, node.register)
+        return self.block.store(value, memoryloc)
 
     def visitPointerNode(self, ctx: PointerNode):
         if ctx.getChildren()[0] and isinstance(ctx._child, StringNode):
             return self.visit(ctx.getChildren()[0])
-        reg: ir.Instruction = self._symbol_table.getTableEntry(ctx.getName()).register
-        while reg.type.is_pointer:
-            reg = self.block.load(reg, name=reg.name)
-        return reg
+        # reg: ir.Instruction = self._symbol_table.getTableEntry(ctx.getName()).register
+
+        return self.visitVariableNode(ctx)
+
+    def visitArrayRefNode(self, ctx: ArrayRefNode):
+
+        name = ctx.getName()
+        index = ctx.index
+        index = self.visit(index)
+        entry: VariableEntry = self._symbol_table.getTableEntry(name)
+        arr: ir.ArrayType = entry.register
+        elem = self.block.gep(arr, indices=[i32(0), index], inbounds=True, name=name)
+        if ctx.rvalue:
+            elem = self.block.load(elem, name=ctx.getName())
+        return elem
 
     def visitStringNode(self, ctx: StringNode):
 
@@ -283,9 +346,12 @@ class llvmVisitor(AbsASTVisitor):
         c_fmt = ir.Constant(ir.ArrayType(ir.IntType(8), len(fmt)),
                             bytearray(fmt.encode("utf8")))
         global_fmt = ir.GlobalVariable(self.module, c_fmt.type, name=str(id(ctx)))
-        global_fmt.global_constant = True
+        # global_fmt.global_constant = True
+        global_fmt.linkage = "internal"
+
         global_fmt.initializer = c_fmt
-        return self.block.bitcast(global_fmt, voidptr_ty)
+        self.globals.append(global_fmt)
+        return global_fmt
 
     def visitBinOpNode(self, ctx: BinOpNode):
         v1: ir.Instruction = self.visit(ctx.lhs)
@@ -314,7 +380,8 @@ class llvmVisitor(AbsASTVisitor):
         return self.block.fadd(v1, v2)
 
     def visitBinLTENode(self, ctx: BinLTENode):
-        super().visitBinLTENode(ctx)
+        return self.compOp(ctx, op='<=')
+
 
     def visitBinAndNode(self, ctx: BinAndNode):
         v1: ir.Instruction = self.visit(ctx.lhs)
@@ -358,9 +425,20 @@ class llvmVisitor(AbsASTVisitor):
     def visitBinGTNode(self, ctx: BinGTNode):
         super().visitBinGTNode(ctx)
 
+    def load(self, ins: ir.AllocaInstr):
+        if not isinstance(ins, ir.AllocaInstr) and not isinstance(ins, ir.GlobalVariable) and not isinstance(ins,
+                                                                                                             ir.GEPInstr):
+            return ins
+        else:
+            name = ins.name
+            ins = self.block.load(ins, name=name)
+            # while ins.type.is_pointer:
+            #     ins = self.block.load(ins, name=name)
+            return ins
+
     def compOp(self, ctx: BinOpNode, op):
-        lhs = self.visit(ctx.lhs)
-        rhs = self.visit(ctx.rhs)
+        lhs = self.load(self.visit(ctx.lhs))
+        rhs = self.load(self.visit(ctx.rhs))
         return self.block.icmp_signed(cmpop=op, lhs=lhs, rhs=rhs)
 
     def visitBinGTENode(self, ctx: BinGTENode):

@@ -39,7 +39,6 @@ class TermNode(AbsNode):
         super().__init__()
         self.value = None
         self.setValue(value)
-        self._lvalue = False
 
     def __invert__(self):
         if self.value:

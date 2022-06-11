@@ -12,13 +12,13 @@ class VariableEntry(object):
     register = None
     lhscounter: int
     rhscounter: int
-    stored_value: object
+    declared: bool
 
     def __init__(self):
         self.const = False
         self.lhscounter = 0
         self.rhscounter = 0
-        self.stored_value = None
+        self.declared = False
 
     def setcounters(self, lhs, rhs):
         self.lhscounter = lhs
@@ -169,15 +169,19 @@ class SymbolTable:
         tableEntry.setConst()
 
     def setValue(self, name, node2):
-        tableEntry = self.getTableEntry(name)
-        tableEntry.value = node2
-
-    def getTableEntry(self, name, assigned=False):
-        if name not in self.variables or (assigned and self.variables[name].stored_value is None):
+        if name not in self.variables:
             if self.parent:
-                return self.parent.getTableEntry(name)
+                return self.parent.setValue(name,node2)
             raise UninitializedException(varname=name)
-        return self.variables[name]
+        self.variables[name].value = node2
+
+    def getTableEntry(self, name,lvalue=False,onlydeclared=False, metadata=MetaData() ):
+        if name in self.variables and ((self.variables[name].declared or lvalue) or not onlydeclared ):
+            self.variables[name].declared= self.variables[name].declared or lvalue
+            return self.variables[name]
+        if self.parent:
+            return self.parent.getTableEntry(name,lvalue=lvalue,onlydeclared=onlydeclared,metadata=metadata)
+        raise UninitializedException(varname=name, metadata=metadata)
 
     def foundRHS(self, name):
         tableEntry = self.getTableEntry(name)
