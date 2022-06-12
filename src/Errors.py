@@ -1,6 +1,7 @@
 import copy
 from copy import deepcopy
 from MetaData import *
+import sys
 
 
 class GeneralException(Exception):
@@ -82,3 +83,6 @@ class pointerOperationError(GeneralException):
     def __str__(self):
         return "error: invalid operands to binary " + self.varname
 
+class incompatible_Types(GeneralException):
+    def __str__(self):
+        print("Warning: incompatible types on line " + str(self._metadata.getLine()), file=sys.stderr)

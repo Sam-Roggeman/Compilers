@@ -48,6 +48,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     # Visit a parse tree produced by CGrammarParser#mathExpr.
     def visitMathExpr(self, ctx: CGrammarParser.MathExprContext):
+        types = [VariableFloatNode,VariableIntNode,VariableCharNode]
         # print("visitMathExpr")
         count = ctx.getChildCount()
         # if ctx.ASS() and not ctx.getChild(0).variable():
@@ -109,6 +110,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
                 operator_node = self.visit(ctx.logOp())
             operator_node.setChildren(child1, child2)
             if ctx.binOpPrio1() or ctx.binOpPrio2():
+                self.typechecking(operator_node)
                 operatorChildren = operator_node.getChildren()
                 if type(operatorChildren[0]) == PointerNode and type(operatorChildren[1]) == PointerNode:
                     raise pointerOperationError(operator_node.toString())
@@ -222,6 +224,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         assinmentNode.setChild(node2, 1)
         node1.setRvalue(False)
         self.addMetaData(ctx, assinmentNode)
+        if type(node2) == FunctionCall and node2.getReturnType() != node1.getSolvedType().getType() :
+            incompatible_Types("",assinmentNode.getMetaData()).__str__()
+        else:
+            self.typechecking(node1, node2)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#reference.
@@ -414,6 +420,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         # print("visitPrintf")
         node = PrintfNode()
         c = ctx.arguments()
+
         astchild = self.visit(c)
         node.addArgument(astchild)
         if self.counter > 0 and self.counter != len(node.getArguments().getChildren()) - 1:
@@ -587,9 +594,10 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     def visitFunctionbody(self, ctx: CGrammarParser.FunctionbodyContext):
         node = FunctionBody()
-        ret = False
         dead = False
         for c in ctx.getChildren():
+            if dead:
+                continue
             for indec in self.incrDecrQueue['aft']:
                 node.addBody(indec)
             self.incrDecrQueue['aft'] = []
@@ -597,12 +605,9 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
             for indec in self.incrDecrQueue['bef']:
                 node.addBody(indec)
             self.incrDecrQueue['bef'] = []
-            if dead:
-                continue
-            # elif ret and astchild and not dead:
-            #     _return.setChild(astchild)
-            #     dead = True
-            elif astchild:
+            if isinstance(astchild, ReturnNode) :
+                dead = True
+            if astchild:
                 if isinstance(astchild, tuple):
                     for astc in astchild:
                         node.addBody(astc)
@@ -621,10 +626,9 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if arguments:
             node.addArgument(self.visit(arguments))
 
-        if not self.symbol_table.getFunction(node.getName()):
-            raise UninitializedException(name)
-
         self.addMetaData(ctx, node)
+        if not self.symbol_table.getFunction(node.getName(),node):
+            raise UninitializedException(name)
         return node
 
     def visitInclude(self, ctx: CGrammarParser.IncludeContext):
@@ -696,6 +700,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         if _name == "main":
             self.setVisitedMain()
         node.setRvalue(False)
+        self.addMetaData(ctx, node)
         return node
 
     def setVisitedMain(self):
@@ -703,6 +708,15 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
 
     def getVisitedMain(self):
         return self.visitedmain
+
+    def typechecking(self,node1,node2 = None):
+        Termtypes = [TermIntNode,TermFloatNode,TermCharNode]
+        if node2 and node2.rhs and node2.lhs and type(node2.rhs) in Termtypes and type(node2.lhs) in Termtypes:
+            if node1.getSolvedType() != type(node2.rhs) and  node1.getSolvedType() != type(node2.lhs):
+                incompatible_Types("", node2.getMetaData()).__str__()
+
+        elif type(node1.rhs) != type(node1.lhs):
+            incompatible_Types("", node1.getMetaData()).__str__()
 
 
 del CGrammarParser

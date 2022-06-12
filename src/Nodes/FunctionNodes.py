@@ -25,6 +25,9 @@ class FunctionNode(AbsNode):
     def getChildren(self):
         return [self.argumentNode]
 
+    def getReturnType(self):
+        return self.returntype
+
     def fold(self):
         self.argumentNode = self.argumentNode.fold()
         return self

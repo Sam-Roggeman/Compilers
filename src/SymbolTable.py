@@ -86,18 +86,25 @@ class SymbolTable:
             return True
         raise RedefinitionException(varname=node.getName())
 
-    def checkArguments(self, node):
+    def checkArguments(self, node, functioncall_node = None):
         node_in_symboltable = self.functions[node.getName()]
         if (len(node_in_symboltable.getArguments().getChildren()) != len(node.getArguments().getChildren())):
             raise functionCallargumentMismatch("")
-        a = 2
+        if functioncall_node:
+            node_in_symboltable_arguments = node_in_symboltable.getArguments().getChildren()
+            functioncall_arguments = functioncall_node.getArguments().getChildren()
+            for i in range(len(node_in_symboltable_arguments)):
+                if node_in_symboltable_arguments[i].getSolvedType() != type(functioncall_arguments[i]):
+                    incompatible_Types("",functioncall_node.getMetaData()).__str__()
+                    break
 
-    def getFunction(self, name):
+
+    def getFunction(self, name, node = None):
         if name not in self.functions.keys():
             if self.parent:
-                return self.parent.getFunction(name)
+                return self.parent.getFunction(name,node)
             return None
-        self.checkArguments(self.functions[name].node)
+        self.checkArguments(self.functions[name].node,node)
         return self.functions[name]
 
     def functionnodeCheck(self, node):
