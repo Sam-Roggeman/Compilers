@@ -24,42 +24,42 @@ A: Present in AST
 L: Runnable LLVM Code-Generation
 M: Runnable Mips Code-Generation
 X: Not working or not implemented
+If you see the symbol N after either M or L it means that the llvm part of these features were fixed since the last deadline
 
-
-|     | Functionality                                   | Status |
-|-----|-------------------------------------------------|--------|
-| 1   | Binary operations +, -, *, and /.               | L      |
-|     | Binary operations >, <, and ==.                 | L      |
-|     | + and -                                         | L      |
-|     | Brackets to overwrite the order of operations.  | L      |
-|     | Logical operators &&, or, and !.                | L      |
-|     | Comparison operators >=, <=, and !=.            | L      |
-|     | Binary operator %.                              | L      |
-|     | Visualization in the form of dot using graphviz | L      |
-|     | Constant Folding                                | L      |
-| 2   | Types                                           | L      |
-|     | Reserved words                                  | L      |
-|     | Variables                                       | L      |
-|     | Pointer operations                              | L      |
-|     | Identifier operations                           | L      |
-|     | Conversions                                     | L      |
-| 3   | Comments                                        | A      |
-|     | Printf                                          | L      |
-|     | Written Comment -> LLVM                         | X      |
-|     | Extra comments -> LLVM                          | X      |
-| 4   | Reserved words                                  | A      |
-|     | for                                             | A      |
-|     | break                                           | A      |
-|     | continue                                        | A      |
-|     | scopes                                          | A      |
-|     | switch, case and default                        | A      |
-| 5   | Reserved words                                  | A      |
-|     | Scopes                                          | A      |
-|     | Local and global variables                      | A      |
-|     | functions                                       | A      |
-|     | Unreachable and dead code                       | A      |
-|     | not generating code after break and continue    | A      |
-| 6   | Arrays                                          | A      |
-|     | Multi-dimensional arrays                        | X      |
-|     | dynamic arrays                                  | X      |
-|     | Import                                          | A      |
+|     | Functionality                                   | Status                                  |
+|-----|-------------------------------------------------|-----------------------------------------|
+| 1   | Binary operations +, -, *, and /.               | M                                       |
+|     | Binary operations >, <, and ==.                 | M                                       |
+|     | Unary operators + and -                         | M (this doesn't work for arrays)        |
+|     | Brackets to overwrite the order of operations.  | M                                       |
+|     | Logical operators &&, or, and !.                | M                                       |
+|     | Comparison operators >=, <=, and !=. (opt)      | M                                       |
+|     | Binary operator %. (opt)                        | M                                       |
+|     | Visualization in the form of dot using graphviz | M                                       |
+|     | Constant Folding                                | M                                       |
+| 2   | Types                                           | M                                       |
+|     | Reserved words                                  | M                                       |
+|     | Variables                                       | M                                       |
+|     | Pointer operations                              | L                                       |
+|     | Identifier operations (opt)                     | M (this doesn't work for arrays)        |
+|     | Conversions (opt)                               | M                                       |
+| 3   | Comments                                        | A                                       |
+|     | Printf                                          | M (this doesn't work for arrays)        |
+|     | Written Comment -> LLVM (opt)                   | X                                       |
+|     | Extra comments -> LLVM (opt)                    | X                                       |
+| 4   | Reserved words                                  | M  N                                    |
+|     | for                                             | M  N                                    |
+|     | break                                           | M  N                                    |
+|     | continue                                        | M  N                                    |
+|     | scopes                                          | L  N                                    |
+|     | switch, case and default (opt)                  | X                                       |
+| 5   | Reserved words                                  | M  N                                    |
+|     | Scopes                                          | L  N                                    |
+|     | Local and global variables                      | M  N                                    |
+|     | functions                                       | M  N                                    |
+|     | Unreachable and dead code                       | M  N                                    |
+|     | not generating code after break and continue    | M  N                                    |
+| 6   | Arrays                                          | L  N                                    |
+|     | Multi-dimensional arrays (opt)                  | X                                       |
+|     | dynamic arrays (opt)                            | X                                       |
+|     | Import                                          | M  N (only printf, scanf works in llvm) |
