@@ -1,3 +1,6 @@
 #!/bin/bash
 source "./env/bin/activate"
-python3 ./src/main.py "$1"
+
+#echo "${@:2}"
+#echo "${@}"
+python3 ./src/main.py "$1" "${@:2}"

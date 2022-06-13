@@ -224,10 +224,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         assinmentNode.setChild(node2, 1)
         node1.setRvalue(False)
         self.addMetaData(ctx, assinmentNode)
-        if type(node2) == FunctionCall and node2.getReturnType() != node1.getSolvedType().getType() :
-            incompatible_Types("",assinmentNode.getMetaData()).__str__()
-        else:
-            self.typechecking(node1, node2)
+        self.typechecking(node1, node2)
         return assinmentNode
 
     # Visit a parse tree produced by CGrammarParser#reference.
@@ -710,6 +707,8 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
         return self.visitedmain
 
     def typechecking(self,node1,node2 = None):
+        # TODO
+        return
         Termtypes = [TermIntNode,TermFloatNode,TermCharNode]
         if node2 and node2.rhs and node2.lhs and type(node2.rhs) in Termtypes and type(node2.lhs) in Termtypes:
             if node1.getSolvedType() != type(node2.rhs) and  node1.getSolvedType() != type(node2.lhs):

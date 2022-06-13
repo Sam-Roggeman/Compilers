@@ -1,3 +1,5 @@
+import os
+
 from ASTVisitor import AbsASTVisitor
 from Nodes.ArrayNodes import StringNode
 from Nodes.Nodes import *
@@ -159,6 +161,8 @@ class ImmediateInstruction(MipsInstruction):
 
 class LI(ImmediateInstruction):
     def __init__(self, reg, value):
+        if isinstance(value,str):
+            value = f"'{value}'"
         super().__init__(reg, 'li', value)
 
 
@@ -265,6 +269,11 @@ class ADDI(TwoRegImmInstruction):
         super(ADDI, self).__init__(r1, r2, v, 'addi')
 
 
+class ADD(TwoRegImmInstruction):
+    def __init__(self, r1, r2, r3):
+        super(ADD, self).__init__(r1, r2, r3, 'add')
+
+
 class AllocateXBytes(SUBU):
     def __init__(self, x):
         super(AllocateXBytes, self).__init__('$sp', '$sp', x)
@@ -296,10 +305,19 @@ class MipsBlock:
     name: str
     # list[MipsInstruction]
     Instructions: list
+    is_terminated: bool
 
     def __init__(self, name):
         self.name = name
         self.Instructions = []
+        self.is_terminated = False
+
+    def branch(self, blockLabel: str, comm):
+        self.is_terminated = True
+        ins = J(blockLabel)
+        ins.comment = comm
+        self.addInstruction(ins)
+
 
     def addInstruction(self, instruction: MipsInstruction):
         self.Instructions.append(instruction)
@@ -334,6 +352,7 @@ class MipsModule:
         self.globals = {}
         # self.main = Main()
         self.exit = Exit()
+        self.main = None
 
     def addGlobal(self, glob, index=0):
         n = f'{glob.name}_{index}'
@@ -407,7 +426,6 @@ class StackRestoration(MipsBlock):
         self.addInstruction(RestoreOldFramePointer())
         if name != 'main':
             self.addInstruction(Return())
-
 
 class MemoryLocation:
     base: str
@@ -566,6 +584,8 @@ class MipsVisitor(AbsASTVisitor):
     _symbol_table = None
     printf = MipsPrintF()
     registers = RegisterTable()
+    continueBlock: MipsBlock
+    breakBlock: MipsBlock
 
     def __init__(self, ctx: CodeblockNode, filepath: str, run=False):
         self.globals = []
@@ -590,10 +610,53 @@ class MipsVisitor(AbsASTVisitor):
 
             raise e
         finally:
-            _output = open(file=filepath, mode='w')
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            _output = open(file=filepath, mode='w+')
             _output.write(str(self.module))
             # self._output.write(str(self.module))
             # self._output.close()
+    def visitWhilestatementNode(self, ctx: WhilestatementNode):
+        self.pushSymbolTable(ctx.symbol_table)
+
+        cond_block: MipsBlock = MipsBlock(name=f'while_condition_line{ctx.getMetaData().getLine()}')
+
+        while_block: MipsBlock = MipsBlock(name=f'while_line{ctx.getMetaData().getLine()}')
+
+        elihw_block: MipsBlock = MipsBlock(name=f'elihw_line{ctx.getMetaData().getLine()}')
+
+
+        self.continueBlock = cond_block
+        self.breakBlock = elihw_block
+
+        self.breakBlock = elihw_block
+        self.continueBlock = cond_block
+        if not self.block.is_terminated:
+            self.block.branch(cond_block.name, "Check while condition")
+        self.block = cond_block
+        self.current_function.append_basic_block(cond_block)
+
+        condition = self.visit(ctx.condition)
+        # if condition.type == i32:
+        #     condition = self.block.icmp_signed("!=", condition, ir.Constant(i32, 0))
+        self.block.addInstruction(BNE(r1=condition, r2='$zero', truebr=while_block.name))
+        self.block.addInstruction(J(elihw_block.name))
+
+        self.current_function.append_basic_block(while_block)
+        self.block = while_block
+        self.visitCodeBlockNode(ctx.block)
+        if not self.block.is_terminated:
+            self.block.branch(cond_block.name, "check while condition")
+
+        self.current_function.append_basic_block(elihw_block)
+        self.block = elihw_block
+        self.popSymbolTable()
+
+        self.continueBlock = None
+        self.breakBlock = None
+
+        return
+
+
 
     def default(self, ctx: AbsNode):
         for child in ctx.getChildren():
@@ -602,15 +665,20 @@ class MipsVisitor(AbsASTVisitor):
     def visitFunctionDefinition(self, ctx: FunctionDefinition):
 
         self.pushSymbolTable(ctx.symbol_table)
+
         self.current_function = MipsFunction(name=ctx.functionName, size=ctx.spaceToAllocate())
         self.module.addFunction(self.current_function)
         newblock = MipsBlock(f"function_start_{ctx.getName()}")
-        block = self.current_function.append_basic_block(newblock)
-        self.block = block
+        self.block = self.current_function.append_basic_block(newblock)
+
+        returnblock = MipsBlock(name=f"{ctx.getName()}_Exit")
+        self.current_function.return_block = returnblock
+
 
         # for variable in self.globals:
         #     a: ir.AllocaInstr = self.block.alloca(variable.type, 1, variable.name)
         #
+
         s = -4
         for variable in self._symbol_table.variables.values():
             varnode: VariableNode = variable.node
@@ -619,13 +687,26 @@ class MipsVisitor(AbsASTVisitor):
             reg = s
             variable.register = reg
         self.current_function.memoryptr = s
-        # and declare a function named "main" inside it
 
         self.default(ctx)
-
+        # if ctx.getName() == 'main' and not self.block.is_terminated:
+        #     self.block.ret(ir.Constant(i32, 1))
+        # elif ctx.returntype == 'void' and not self.block.is_terminated:
+        #     self.block.ret_void()
+        # else:
+        #     result = self.load(self.current_function.return_address)
+        #     self.block.ret(result)
         self.popSymbolTable()
 
+    def visitBreakNode(self, ctx: BreakNode):
+        self.block.branch(self.breakBlock.name, "Break")
+
+    def visitContinueNode(self, ctx: ContinueNode):
+
+        self.block.branch(self.continueBlock.name, "Continue")
+
     def visitFunctionBody(self, ctx: FunctionBody):
+
         return self.default(ctx)
 
     def visitCodeBlockNode(self, ctx: CodeblockNode):
@@ -649,8 +730,11 @@ class MipsVisitor(AbsASTVisitor):
         pass
 
     def visitReturnNode(self, ctx: ReturnNode):
-        val = self.visit(ctx.child)
-        self.block.addInstruction(LI('$v0', val))
+        value = self.visit(ctx.child)
+        if value is not None:
+            self.block.addInstruction(LI('$v0', value))
+        ret_blo = self.current_function.return_block
+        self.block.branch(ret_blo.name, "function return")
         return
 
     def visitVariableNameNode(self, ctx: VariableNameNode):
@@ -672,7 +756,11 @@ class MipsVisitor(AbsASTVisitor):
         return self.visitVariableNameNode(ctx)
 
     def visitFunctionNode(self, ctx: FunctionNode):
-        pass
+        fmt_args = self.visit(ctx.argumentNode)
+        for arg_ind in range(len(fmt_args)):
+            LI(f'$a{arg_ind}',fmt_args[arg_ind])
+
+        return self.block.addInstruction(JAL(ctx.functionName))
 
     def callprintf(self, str):
         identifier = self.module.addGlobal(ASCIIZ(name=f'str', val=str))
@@ -744,21 +832,24 @@ class MipsVisitor(AbsASTVisitor):
         condition = self.visit(ctx.condition)
 
         if_block = MipsBlock(f"if_line_{ctx.getMetaData().getLine()}")
-        elseif_block = MipsBlock(f"elseif_line_{ctx.getMetaData().getLine()}")
+        elseif_block = MipsBlock(f"else_line_{ctx.getMetaData().getLine()}")
         endif_block = MipsBlock(f"endif_line_{ctx.getMetaData().getStopLine()}")
 
         self.block.addInstruction(BNE(r1=condition, r2='$zero', truebr=if_block.name))
-        self.block.addInstruction(J(elseif_block.name))
+        self.block.branch(elseif_block.name, "go to else block")
 
         self.current_function.append_basic_block(if_block)
         self.block = if_block
         self.visitCodeBlockNode(ctx.block)
-        self.block.addInstruction(J(endif_block.name))
+        if not self.block.is_terminated:
+            self.block.branch(endif_block.name, "go to end of if statement")
 
         self.current_function.append_basic_block(elseif_block)
         self.block = elseif_block
         self.visitCodeBlockNode(ctx.else_statement.block)
-        self.block.addInstruction(J(endif_block.name))
+
+        if not self.block.is_terminated:
+            self.block.branch(endif_block.name, "go to end of if statement")
 
         self.current_function.append_basic_block(endif_block)
         self.block = endif_block
@@ -836,6 +927,15 @@ class MipsVisitor(AbsASTVisitor):
 
         return '$t0'
 
+    def load(self, ins: MemoryLocation):
+        if not isinstance(ins, MemoryLocation):
+                # and not isinstance(ins, ir.GlobalVariable) and not isinstance(ins, ir.GEPInstr):
+            return ins
+        else:
+            # name = ins.base
+            self.block.addInstruction(LW('$t0',ins.base,ins.offset))
+            return '$t0'
+
     def visitPointerNode(self, ctx: PointerNode):
         if ctx.getChildren()[0] and isinstance(ctx._child, StringNode):
             return self.visit(ctx.getChildren()[0])
@@ -849,28 +949,24 @@ class MipsVisitor(AbsASTVisitor):
         return fmt
 
     def visitBinOpNode(self, ctx: BinOpNode):
-        v1: ir.Instruction = self.visit(ctx.lhs)
+        v1: MemoryLocation = self.visit(ctx.lhs)
         v2 = self.visit(ctx.rhs)
 
         # copy and load to new reg
-        if v1.type.is_pointer:
-            v1 = self.block.load(v1, v1.name)
-        if v2.type.is_pointer:
-            v2 = self.block.load(v2)
+        for reg in ((v1,'$t0'),(v2,'$t1')):
+            if isinstance(reg[0],MemoryLocation):
+                self.block.addInstruction(LW(reg[1], reg[0].base, reg[0].offset))
+            else:
+                self.block.addInstruction(LI(reg[1], reg[0]))
 
-        if ctx.getLLVMType() != v1.type:
-            v1 = self.block.sitofp(v1, ctx.getLLVMType())
-        if ctx.getLLVMType() != v2.type:
-            v2 = self.block.sitofp(v2, ctx.getLLVMType())
-
-        return v1, v2
+        return '$t0', '$t1'
 
     def visitBinPlusNode(self, ctx: BinPlusNode):
         v1, v2 = self.visitBinOpNode(ctx=ctx)
 
         # integer addition
         if ctx.type == TermIntNode or ctx.type == TermCharNode:
-            return self.block.add(v1, v2)
+            return self.block.addInstruction(ADD(v1, v1, v2))
         # fp addition
         return self.block.fadd(v1, v2)
 

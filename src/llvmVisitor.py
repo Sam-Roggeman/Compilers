@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import os
+import os.path
 from ctypes import CFUNCTYPE
 
 import llvmlite.binding as llvm
@@ -8,7 +10,6 @@ from ASTVisitor import *
 from llvmTypes import *
 from llvmbuilder import LLVMBuilder
 
-import os, os.path
 
 class llvmVisitor(AbsASTVisitor):
     builder: LLVMBuilder
@@ -60,7 +61,7 @@ class llvmVisitor(AbsASTVisitor):
 
     def visitFunctionDefinition(self, ctx: FunctionDefinition):
         param_ty = ctx.getArgumentLLVMTypes()
-        fnty = ir.FunctionType(ctx.returntype.getLLVMType(), param_ty )
+        fnty = ir.FunctionType(ctx.returntype.getLLVMType(), param_ty)
         self.current_function = ir.Function(self.module, fnty, name=ctx.getName())
         self._symbol_table.getFunction(ctx.getName()).memorylocation = self.current_function
         block = self.current_function.append_basic_block(name=f"main-entry-{ctx.getName()}")
@@ -81,12 +82,13 @@ class llvmVisitor(AbsASTVisitor):
             a: ir.AllocaInstr = self.block.alloca(varnode.getLLVMType(), 1, varnode.getName())
             variable.register = a
         args = self.current_function.args
-        index= 0
+        index = 0
         for arg in ctx.getArguments().getChildren():
             a = self.visit(arg)
             self.block.store(value=args[index], ptr=a)
             index += 1
         self.default(ctx)
+
         self.current_function.blocks.append(returnblock)
         if not self.block.block.is_terminated:
             self.block.branch(returnblock)
@@ -119,8 +121,6 @@ class llvmVisitor(AbsASTVisitor):
         self.continueBlock = cond_block
         self.breakBlock = elihw_block
 
-        self.breakBlock = elihw_block
-        self.continueBlock = cond_block
         if not self.block.block.is_terminated:
             self.block.branch(cond_block)
         self.block = ir.IRBuilder(cond_block)
@@ -139,7 +139,6 @@ class llvmVisitor(AbsASTVisitor):
 
         self.continueBlock = None
         self.breakBlock = None
-
         return
 
     def visitFunctionBody(self, ctx: FunctionBody):
@@ -170,7 +169,8 @@ class llvmVisitor(AbsASTVisitor):
         pass
 
     def visitVariableNameNode(self, ctx: VariableNameNode):
-        table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), not ctx.rvalue, True, metadata=ctx.getMetaData())
+        table_entry: VariableEntry = self._symbol_table.getTableEntry(ctx.getName(), not ctx.rvalue, True,
+                                                                      metadata=ctx.getMetaData())
         ins: ir.Instruction = table_entry.register
         if ctx.rvalue:
             ins = self.block.load(ins, name=ctx.getName())
@@ -205,7 +205,7 @@ class llvmVisitor(AbsASTVisitor):
     def gep(self, element):
         return self.block.gep(element, indices=[i32(0), i32(0)], inbounds=True, name=element.name)
 
-    def processStringArguments(self,fmt_args):
+    def processStringArguments(self, fmt_args):
         fmt_args[0] = self.gep(fmt_args[0])
         for index in range(1, len(fmt_args)):
             if hasattr(fmt_args[index].type, "pointee"):
@@ -382,7 +382,6 @@ class llvmVisitor(AbsASTVisitor):
     def visitBinLTENode(self, ctx: BinLTENode):
         return self.compOp(ctx, op='<=')
 
-
     def visitBinAndNode(self, ctx: BinAndNode):
         v1: ir.Instruction = self.visit(ctx.lhs)
         v2 = self.visit(ctx.rhs)
@@ -426,14 +425,11 @@ class llvmVisitor(AbsASTVisitor):
         super().visitBinGTNode(ctx)
 
     def load(self, ins: ir.AllocaInstr):
-        if not isinstance(ins, ir.AllocaInstr) and not isinstance(ins, ir.GlobalVariable) and not isinstance(ins,
-                                                                                                             ir.GEPInstr):
+        if not isinstance(ins, ir.AllocaInstr) and not isinstance(ins, ir.GlobalVariable) and not isinstance(ins, ir.GEPInstr):
             return ins
         else:
             name = ins.name
             ins = self.block.load(ins, name=name)
-            # while ins.type.is_pointer:
-            #     ins = self.block.load(ins, name=name)
             return ins
 
     def compOp(self, ctx: BinOpNode, op):

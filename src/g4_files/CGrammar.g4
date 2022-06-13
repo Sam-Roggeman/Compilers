@@ -5,7 +5,7 @@ startRule
     ;
 
 file
-    : (include)* ((expr SEMICOL) | (statement) | (function))*
+    : (include)* ((expr SEMICOL) | (statement) | (function) )*
     ;
 
 body
@@ -15,7 +15,7 @@ body
     | CONTINUE SEMICOL (expr SEMICOL)*)?
     | returnStatement
     ;
-
+comment: BlockComment | Comment;
 expr
     : mathExpr
     | declaration
@@ -177,10 +177,12 @@ RETURN: 'return';
 VarName: [A-Za-z_] [A-Za-z_0-9]*;
 
 LINE_COMMENT
-  : '//' ~[\r\n]* (EOF|'\r'? '\n') -> channel(HIDDEN)
+  : '//' ~[\r\n]* (EOF|'\r'? '\n') -> channel(1)
   ;
-BlockComment: '/*' .*? '*/' -> skip;
-Comment: '//' ~[\n]* -> skip;
+
+BlockComment: '/*' .*? '*/' -> channel(1);
+Comment: '//' ~[\n]* -> channel(1);
+
 WS: [ \n\t\r]+ -> skip;
 
 INCLUDE: '#include';

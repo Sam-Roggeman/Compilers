@@ -95,7 +95,8 @@ class SymbolTable:
             functioncall_arguments = functioncall_node.getArguments().getChildren()
             for i in range(len(node_in_symboltable_arguments)):
                 if node_in_symboltable_arguments[i].getSolvedType() != type(functioncall_arguments[i]):
-                    incompatible_Types("",functioncall_node.getMetaData()).__str__()
+                    # TODO inc types
+                    # incompatible_Types("",functioncall_node.getMetaData()).__str__()
                     break
 
 

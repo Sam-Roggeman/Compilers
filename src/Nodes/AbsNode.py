@@ -1,5 +1,6 @@
 from MetaData import *
 
+
 class AbsNode:
     def setRvalue(self, rval):
         self.rvalue = rval
@@ -60,8 +61,9 @@ class AbsNode:
     def getDead(self):
         return self.dead
 
-    def setDead(self,dead):
+    def setDead(self, dead):
         self.dead = dead
+
     def toString(self):
         return ""
 
@@ -103,3 +105,11 @@ class AbsNode:
         for index in range(len(children)):
             if children[index]:
                 children[index].solveTypes()
+
+
+class commentNode(AbsNode):
+    comment: str
+
+    def __init__(self, comment):
+        super().__init__()
+        self.comment = comment
