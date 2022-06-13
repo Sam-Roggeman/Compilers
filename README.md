@@ -1,30 +1,29 @@
+<h3>#How to run </h3>
+<h3>Scripts</h3>
+<h6>Build: </h6>
+No arguments, creates the virtual environment and installs the needed packages and compiles the grammar.
+<h6>Run:</h6>
+**Arguments:** $1: filepath <br>
+**Flags:** -M (compile to MIPS), -L (Compile to LLVM), -R (Run LLVM code using LLVM backend),
+-D (Make dot diagram before and after optimalizations). <br>
+**Use:** Compiles a single c file. The output will be saved to ./output.
 
-#How to run
-We made three scripts:
+<h6>RunAll:</h6>
+**Flags:** -M (compile to MIPS), -L (Compile to LLVM), -R (Run LLVM code using LLVM backend),
+-D (Make dot diagram before and after optimalizations). <br>
+**Use:** Compiles all c files from ./inputFiles/CompilersBenchmark. The output will be saved to ./output.
 
-The first one is the build script which takes no arguments and makes the virtual environment 
-and downloads the needed packages. It also processes the grammar/
+<h6>TestScript:</h6>
+**Use:** Compiles all c files from ./inputFiles/CompilersBenchmark. Will run LLVM code and compare it to the expected
+output of the c program. Will save all the output of the code to testOutput in ./testFiles. Any file compare errors will be logged in
+comparisonErrors.txt and test-results are found in Result.txt.
 
-The second one is the run script which takes one argument which is “./inputfiles/” ${path/to/cfile.c} where cfile.c if the file that should be compiled.
-The ./output folder will contain the dot-output for the ast. For example ./run.sh Test.c
-
-
-The last script takes no input parameters and will compile all of the c files from the project folders in inputfiles.
-It will save all of the output (also terminal output) to ./testfiles/{project}/testOutput and compare it with
-./testfiles/{project}/expectedOutput, the result is found in ./testfiles/{project}/Result.txt 
-where True means that the files are the same. There will also be terminal output saying if the test has passed or not. 
-If the comparison fails, an errormessage will be displayed. <br>
-WARNING: THESE WILL PROBABLY ALL FAIL AT THE MOMENT AS A LOT OF THE CORE HAS BEEN CHANGED AND THE TESTS NOT UPDATED
-
-
-
-
-#Features
-A: Present in AST
-L: Runnable LLVM Code-Generation
-M: Runnable Mips Code-Generation
-X: Not working or not implemented
-If you see the symbol N after either M or L it means that the llvm part of these features were fixed since the last deadline
+<h3>#Features</h3>
+**A:** Present in AST <br>
+**L:** Runnable LLVM Code-Generation <br>
+**M:** Runnable Mips Code-Generation <br>
+**X:** Not working or not implemented <br>
+**N:** LLVM part of these features were added since the first deadline
 
 |     | Functionality                                   | Status                                  |
 |-----|-------------------------------------------------|-----------------------------------------|
@@ -63,3 +62,6 @@ If you see the symbol N after either M or L it means that the llvm part of these
 |     | Multi-dimensional arrays (opt)                  | X                                       |
 |     | dynamic arrays (opt)                            | X                                       |
 |     | Import                                          | M  N (only printf, scanf works in llvm) |
+
+<h3>#All testfiles and their status </h3>
+[Trello-Screenshot](https://prnt.sc/sjEybNBmtcvT)
