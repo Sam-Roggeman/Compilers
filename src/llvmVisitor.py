@@ -289,7 +289,8 @@ class llvmVisitor(AbsASTVisitor):
 
         self.block = ir.IRBuilder(if_block)
         self.visitCodeBlockNode(ctx.block)
-        self.block.branch(endif_block)
+        if not self.block.block.is_terminated:
+            self.block.branch(endif_block)
 
         self.block = ir.IRBuilder(endif_block)
         self.popSymbolTable()
@@ -297,13 +298,8 @@ class llvmVisitor(AbsASTVisitor):
         return
 
     def visitAssNode(self, ctx: AssNode):
-        a = ctx.getMetaData()
-
-        node: VariableEntry = self.visit(ctx.lhs)
         ctx.lhs.setRvalue(False)
         memoryloc = self.visit(ctx.lhs)
-        node.declared = True
-        value: ir.Instruction
         if not self.current_function:
             gv = self.module.globals[ctx.lhs.getName()]
             gv.initializer = ctx.rhs.llvmValue()
@@ -311,7 +307,6 @@ class llvmVisitor(AbsASTVisitor):
             return
         if isinstance(ctx.rhs, TermNode):
             a = ctx.rhs.llvmValue()
-            # a = self.load(a)
             return self.block.store(value=ctx.rhs.llvmValue(), ptr=memoryloc)
         value = self.visit(ctx.rhs)
         if value.type.is_pointer and not isinstance(ctx.rhs, RefNode):
@@ -403,7 +398,9 @@ class llvmVisitor(AbsASTVisitor):
         return self.compOp(ctx, op='==')
 
     def visitBinModNode(self, ctx: BinModNode):
-        super().visitBinModNode(ctx)
+        lhs = self.load(self.visit(ctx.lhs))
+        rhs = self.load(self.visit(ctx.rhs))
+        return self.block.srem(lhs,rhs)
 
     def visitBinDisNode(self, ctx: BinDisNode):
         v1, v2 = self.visitBinOpNode(ctx=ctx)

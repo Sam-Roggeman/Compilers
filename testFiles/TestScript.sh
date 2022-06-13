@@ -52,8 +52,8 @@ fi
     rm "./testFiles/${project}/comparisonErrors.txt"
   fi
 #  add some explanation to the Results.txt
-  echo "# Comparison of the expected output and the actual output" >> "./testFiles/${project}/Result.txt"
-  echo "# Filename Success: True = identical outputs" >> "./testFiles/${project}/Result.txt"
+  echo "# Comparison of the expected output and the actual output" &>> "./testFiles/${project}/Result.txt"
+  echo "# Filename Success: True = identical outputs" &>> "./testFiles/${project}/Result.txt"
 #  loop over all the c files
   for f in ./inputFiles/"${project}"/*.c;
   do
