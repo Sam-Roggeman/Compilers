@@ -135,6 +135,7 @@ class CGrammarVisitorImplementation(CGrammarVisitor):
     def visitFunction(self, ctx: CGrammarParser.FunctionContext):
         return self.visitChildren(ctx)
 
+
     # Visit a parse tree produced by CGrammarParser#declaration.
     def visitDeclaration(self, ctx: CGrammarParser.DeclarationContext):
         node: VariableNode = self.visit(ctx.types_specifier())

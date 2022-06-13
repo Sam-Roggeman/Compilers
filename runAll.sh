@@ -1,5 +1,5 @@
 #!/bin/bash
 for file in ./inputFiles/CompilersBenchmark/CorrectCode/*.c
 do
-  source ./run.sh "$file" "${@}"
+  source ./run.sh "$file" "${@}" &> /dev/null
 done

@@ -138,7 +138,8 @@ class VariableCharNode(VariableNode):
 class PointerNode(VariableNode):
     point_to_type: type
     _name = None
-
+    def getSize(self):
+        return 4
     def getSolvedType(self) -> type:
         return type(self)
 
